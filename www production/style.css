@@ -1,0 +1,192 @@
+/* ===== GLOBAL ===== */
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background-color: #000;
+  font-family: Arial, Helvetica, sans-serif;
+  color: #fff;
+  overflow: hidden;
+}
+
+/* ===== STATUS BAR ===== */
+#status-bar {
+  height: 1cm;
+  background-color: #cfcfcf;
+  color: #000;
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  border-bottom: 1px solid #aaa;
+}
+
+#status-left {
+  display: flex;
+  align-items: center;
+  gap: 30px;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+#datetime {
+  font-family: "Segoe UI", "Roboto Mono", "Courier New", monospace;
+  font-size: 0.95rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  color: #111;
+  white-space: nowrap;
+}
+
+#datetime::after {
+  content: " ";
+  margin: 0 12px;
+  color: #555;
+}
+
+#farm-status {
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+#status-right {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  background-color: #000;  
+  padding: 0 15px;
+  height: 100%;
+  border-left: 2px solid rgba(255,255,255,0.2);
+}
+
+#status-text {
+  margin: 0 15px 0 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+  color: #fff;
+}
+
+#logo {
+  height: 0.8cm;
+  width: auto;
+}
+
+/* ===== GRID ===== */
+#grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+  padding: 12px;
+  height: calc(100vh - 1cm);
+}
+
+/* ===== CARD ===== */
+.card {
+  background-color: #1e1e1e;
+  border-left: 12px solid #666;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 130px;
+}
+
+/* ===== STATES ===== */
+.card.printing { border-color: #f0ad4e; }
+.card.idle     { border-color: #5cb85c; }
+.card.paused   { border-color: #5bc0de; }
+.card.error    { border-color: #d9534f; }
+.card.offline  { border-color: #777; opacity: 0.6; }
+
+/* ===== CONTENT ===== */
+.card h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.card .model {
+  font-size: 0.85rem;
+  color: #aaa;
+}
+
+.card .state {
+  font-size: 0.9rem;
+}
+
+.temps {
+  font-size: 0.85rem;
+  color: #ddd;
+  margin: 2px 0 4px 0;
+}
+
+/* ===== PROGRESS ===== */
+.progress {
+  width: 100%;
+  height: 10px;
+  background-color: #333;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress > div {
+  height: 100%;
+  background-color: #f0ad4e;
+}
+
+/* ===== TIME ===== */
+.time {
+  font-size: 0.85rem;
+  color: #ccc;
+}
+
+.card.near-end .time {
+  color: #ffd966;
+  font-weight: 600;
+}
+
+.eta {
+  font-size: 0.8rem;
+  color: #bbb;
+}
+
+/* ===== BLINK WHEN DONE ===== */
+@keyframes blink-near {
+  0%   { opacity: 1; }
+  50%  { opacity: 0.4; }
+  100% { opacity: 1; }
+}
+
+.card.near-end {
+  animation: blink-near 1s infinite;
+  box-shadow: 0 0 15px rgba(240, 173, 78, 0.9);
+}
+
+/* ===== STATUS BAR STATES ===== */
+#status-bar.idle {
+  background-color: #cfcfcf;
+  color: #000;
+}
+
+#status-bar.printing {
+  background-color: #f0ad4e;
+  color: #000;
+}
+
+#status-bar.near-end {
+  background-color: #f39c12;
+  color: #000;
+}
+
+#status-bar.error {
+  background-color: #d9534f;
+  color: #fff;
+}
+
+
+
