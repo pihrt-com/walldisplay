@@ -1,0 +1,28 @@
+[Unit]
+Description=Print Farm Walldisplay Backend (FastAPI)
+After=network.target nginx.service
+Wants=network.target
+
+[Service]
+Type=simple
+
+User=pi
+Group=pi
+
+WorkingDirectory=/opt/walldisplay
+Environment="PATH=/opt/walldisplay/venv/bin"
+
+ExecStart=/opt/walldisplay/venv/bin/uvicorn app.main:app \
+  --host 127.0.0.1 \
+  --port 8000 \
+  --workers 1
+
+Restart=always
+RestartSec=5
+
+# Logy do journalu
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
