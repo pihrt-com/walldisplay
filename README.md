@@ -35,7 +35,7 @@ Printers:
 -   Prusa MK3 farm (USB → PrusaLink multi-instance)
 -   Raise3D (LAN)
 
-[![](https://github.com/pihrt-com/walldisplay/blob/main/www%20test%20local/final_screen.png?raw=true)](https://github.com/pihrt-com/walldisplay/blob/main/www%20test%20local/final_screen.png
+[![](https://github.com/pihrt-com/walldisplay/blob/main/www%20test%20example/final_screen.png?raw=true)](https://github.com/pihrt-com/walldisplay/blob/main/www%20test%20example/final_screen.png)
 
 ## Python libraries
 - Tested in  **Python 3.13** runs in **virtualenv** (`venv`)
