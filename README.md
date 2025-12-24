@@ -1,6 +1,33 @@
+# Walldisplay for real-time monitoring of a 3D printing farm.
 
-# Wall Display!
-Wall Display is software that runs on Raspberry Pi 3+ and displays the status of the print farm on a monitor (VGA, HDMI, etc.). The status is loaded locally via a LAN network using tokens and printer IP addresses (set in the config file). Wall Display does not load state outside the local network (no cloud required).
+## Where does it run?
+Raspberry Pi 3+
+Raspberry Pi OS
+connected to a monitor (HDMI)
+
+## How do I access it?
+Locally on the monitor (kiosk)
+or from the LAN:
+http://IP_RASPBERRY/
+
+## What does it display?
+status of all printers
+print progress (%)
+remaining time
+ETA (end date/time)
+nearest print end
+visual alerts (color changes)
+
+## Meaning of colors
+Color <-> Meaning
+- Gray <-> Not printing / idle
+- Yellow <-> Printing in progress
+- Orange <-> Nearing completion
+- Red <-> Error
+
+## Updates data
+- Data every 5 seconds
+- Time every 1 second
 
 Printers:
 -   Prusa XL (LAN)  
@@ -29,18 +56,18 @@ GET /api/status
 -   `/api → http://127.0.0.1:8000` 
 
 ## URL 
-`http://localhost/ → wallboard UI`
-` http://localhost/api/status → JSON data`
+- `http://localhost/ → wallboard UI`
+- `http://localhost/api/status → JSON data`
 
 ## Backend
 -   `prusa_link.py` – local PrusaLink (XL, MK4, MK3)
 -   `prusa_farm.py` – multi-instance MK3
--   `raise3d.py` – (not ready)
+-   `raise3d.py` – (Pro2+, Pro3+)
 -   only one **JSON format**
     
 ### Backend output (JSON)
-
-`[ 
+```
+[ 
     {
     "name":  "MK3-08",
     "model":  "MK3",
@@ -52,42 +79,13 @@ GET /api/status
         "bed":  60
             }
     } 
-]`
-
-# Wallboard for real-time monitoring of a 3D printing farm.
-
-## Where does it run?
-Raspberry Pi 3+
-Raspberry Pi OS
-connected to a monitor (HDMI)
-
-## How do I access it?
-Locally on the monitor (kiosk)
-or from the LAN:
-http://IP_RASPBERRY/
-
-## What does it display?
-status of all printers
-print progress (%)
-remaining time
-ETA (end date/time)
-nearest print end
-visual alerts (color changes)
-
-## Meaning of colors
-Color <-> Meaning
-Gray <-> Not printing / idle
-Yellow <-> Printing in progress
-Orange <-> Nearing completion
-Red <-> Error
-
-## Updates data
-Data every 5 seconds
-Time every 1 second
+]
+```
 
 # Reinstalling on a new Raspberry Pi
 
 ## BACKEND
+```
 sudo apt update
 sudo apt install -y python3 python3-venv nginx
 cd /opt
@@ -96,16 +94,19 @@ cd walldisplay
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
+```
 
 ## FASTAPI SERVICE
+```
 sudo systemctl enable walldisplay
 sudo systemctl start walldisplay
+```
 
 ## NGINX
+```
 sudo apt install -y nginx
 sudo mkdir /var/www/walldisplay
 sudo chown -R www-data:www-data /var/www/walldisplay
-
 sudo nano /etc/nginx/sites-available/walldisplay
 
 server {
@@ -122,36 +123,47 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
     }
 }
+```
 
-
+```
 sudo ln -s /etc/nginx/sites-available/wallboard /etc/nginx/sites-enabled/
 sudo rm /etc/nginx/sites-enabled/default
 sudo nginx -t
 sudo systemctl restart nginx
+```
 
+```
 sudo systemctl daemon-reexec
 sudo systemctl daemon-reload
 sudo systemctl enable walldisplay
 sudo systemctl start walldisplay
-
+```
+```
 systemctl status walldisplay
-logs: 
+```
+Logs:
+```
 journalctl -u wallboard -f
+```
 
 ## KIOSK
+```
 sudo apt install -y chromium unclutter
 xset s off
 xset -dpms
+```
 
+```
 /opt/walldisplay/app/
 ├── main.py
 ├── aggregator.py
 ├── config.py
 └── printers/
     ├─ init.py
-    ├─ prusalink.py
+    ├─ prusa_link.py
     ├─ raise3d.py    
-    └─ prusafarm.py
+    └─ prusa_farm.py
+```
 
 ## Test
 cd /opt/walldisplay
