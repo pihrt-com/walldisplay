@@ -40,7 +40,19 @@ GET /api/status
     
 ### Backend output (JSON)
 
-`[  {  "name":  "MK3-08",  "model":  "MK3",  "state":  "printing",  "progress":  98,  "time_left":  163,  "temps":  {  "nozzle":  220,  "bed":  60  }  }  ]`
+`[ 
+    {
+    "name":  "MK3-08",
+    "model":  "MK3",
+    "state":  "printing", 
+    "progress":  98, 
+    "time_left":  163, 
+    "temps":  {
+        "nozzle":  220,
+        "bed":  60
+            }
+    } 
+]`
 
 # Wallboard for real-time monitoring of a 3D printing farm.
 
