@@ -1,3 +1,15 @@
+// ===== DATA SOURCE CONFIG =====
+// Raspberry Pi (FastAPI):
+// const DATA_SOURCE = "/api/status";
+
+// Web mirror (static JSON):
+// const DATA_SOURCE = "/walldisplay/status.json";
+
+// Auto-detect json path:
+const DATA_SOURCE = location.hostname === "localhost"
+  ? "/api/status"
+  : "/walldisplay/status.json";
+
 const API_URL = "/api/status";
 const REFRESH_MS = 5000;
 
@@ -193,12 +205,25 @@ function render(printers) {
 
 async function load() {
   try {
-    const r = await fetch(API_URL, { cache: "no-store" });
+    const r = await fetch(DATA_SOURCE, {
+      cache: "no-store"
+    });
+
+    if (!r.ok) {
+      throw new Error(`HTTP ${r.status}`);
+    }
+
     const data = await r.json();
     render(data);
     updateDateTime();
+
   } catch (e) {
-    console.error("API error", e);
+    console.error("DATA LOAD ERROR", e);
+
+    const farmStatusEl = document.getElementById("farm-status");
+    if (farmStatusEl) {
+      farmStatusEl.textContent = "DATA NEDOSTUPNÁ";
+    }
   }
 }
 

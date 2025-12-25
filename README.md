@@ -37,6 +37,12 @@ Printers:
 
 [![](https://github.com/pihrt-com/walldisplay/blob/main/www%20test%20example/final_screen.png?raw=true)](https://github.com/pihrt-com/walldisplay/blob/main/www%20test%20example/final_screen.png)
 
+
+## Remote json export
+- POST https://pihrt.com/walldisplay/update
+- Authorization: Bearer SECRET_TOKEN
+
+
 ## Python libraries
 - Tested in  **Python 3.13** runs in **virtualenv** (`venv`)
 -   `fastapi`  
@@ -157,6 +163,7 @@ xset -dpms
 /opt/walldisplay/app/
 ├── main.py
 ├── aggregator.py
+├── remote_export.py
 ├── config.py
 └── printers/
     ├─ init.py

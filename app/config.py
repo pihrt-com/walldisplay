@@ -1,3 +1,11 @@
+# ===== SEND REMOTE TO EXTERNAL WEB =====
+REMOTE_EXPORT = {
+    "enabled": True,
+    "url": "https://pihrt.com/walldisplay/update.php",
+    "token": "SECRET_TOKEN"
+}
+
+
 # ===== PRUSA XL + MK4 (LAN) =====
 PRUSA_LINK_PRINTERS = [
     {
@@ -85,3 +93,19 @@ PRUSA_FARM = {
         }
     ]
 }
+
+# ===== RAISE PRO 2 and PRO 3 (LAN) =====
+RAISE_LINK_PRINTERS = [
+    {
+        "name": "RAISE-01",
+        "model": "PRO2+",
+        "url": "http://192.168.88.170",
+        "api_key": "API_KEY_PRO2"
+    },
+    {
+        "name": "RAISE-02",
+        "model": "PRO3+",
+        "url": "http://192.168.88.172",
+        "api_key": "API_KEY_PRO3"
+    }
+]

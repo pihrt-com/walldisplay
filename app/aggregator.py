@@ -1,6 +1,7 @@
 from app.config import PRUSA_LINK_PRINTERS, PRUSA_FARM
 from app.printers.prusa_link import get_status as prusa_link_status
 from app.printers.prusa_farm import get_all as prusa_farm_status
+from app.remote_export import send_remote_status
 
 
 def collect():
@@ -24,4 +25,6 @@ def collect():
     except Exception:
         pass
 
+    send_remote_status(printers)
+    
     return printers
