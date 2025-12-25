@@ -41,6 +41,9 @@ if (json_last_error() !== JSON_ERROR_NONE) {
     exit('Invalid JSON');
 }
 
+
+$data['received_at'] = time();
+
 // ===== WRITE FILE (atomic) =====
 $tmp = $OUTPUT_FILE . '.tmp';
 

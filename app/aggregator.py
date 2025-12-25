@@ -3,6 +3,7 @@ from app.printers.prusa_link import get_status as prusa_link_status
 from app.printers.prusa_farm import get_all as prusa_farm_status
 from app.remote_export import send_remote_status
 
+import time
 
 def collect():
     printers = []
@@ -27,4 +28,7 @@ def collect():
 
     send_remote_status(printers)
     
-    return printers
+    return {
+        "generated_at": int(time.time()),  # UNIX timestamp
+        "printers": printers
+    }
