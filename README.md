@@ -40,8 +40,8 @@ Printers:
 
 
 ## Remote json export
-- POST https://pihrt.com/walldisplay/update
-- Authorization: Bearer SECRET_TOKEN
+- POST https://your_ip/update.php
+- Authorization: Bearer YOUR_SECRET_TOKEN
 
 
 ## Python libraries
@@ -78,7 +78,7 @@ GET /api/status
 -   `prusa_link.py` – local PrusaLink (XL, MK4, MK3)
 -   `prusa_farm.py` – local multi-instance MK3
 -   `raise3d.py` – local Raise (Pro2+, Pro3+)
--   only one **JSON format**
+-   only one **JSON format** for all printers
     
 ### Backend output (JSON)
 ```
@@ -176,7 +176,7 @@ source venv/bin/activate
 uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
-## Raise test point API URL
+## Raise - test points API URL
 ```
 curl "http://192.168.88.172:10800/v1/printer/runningstatus?token=076ffdfe5a350aac3c3da4eea43e2248"
 curl "http://192.168.88.172:10800/v1/job/currentjob?token=076ffdfe5a350aac3c3da4eea43e2248"
