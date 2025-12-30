@@ -1,6 +1,7 @@
-from app.config import PRUSA_LINK_PRINTERS, PRUSA_FARM
+from app.config import PRUSA_LINK_PRINTERS, PRUSA_FARM, RAISE3D_PRINTERS
 from app.printers.prusa_link import get_status as prusa_link_status
 from app.printers.prusa_farm import get_all as prusa_farm_status
+from app.printers.raise3d import get_status as raise3d_status
 from app.remote_export import send_remote_status
 
 import time
@@ -25,6 +26,10 @@ def collect():
         printers.extend(prusa_farm_status(PRUSA_FARM))
     except Exception:
         pass
+
+    # Raise Pro2 and Pro3
+    for p in RAISE3D_PRINTERS:
+        printers.append(raise3d_status(p))    
 
     send_remote_status(printers)
     
