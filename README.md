@@ -84,7 +84,7 @@ GET /api/status
 -   `raise3d.py` – local Raise (Pro2+, Pro3+)
 -   only one **JSON format** for all printers
 ### Devices
--   `shelly_4pm.py ` - local Shelly devices (Pro 4PM)
+-   `shelly_4pm.py` - local Shelly devices (Pro 4PM)
     
 ### Backend output (JSON)
 ```
