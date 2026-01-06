@@ -225,3 +225,36 @@ html, body {
     justify-content: flex-end;
   }
 }
+
+/* ===== POWER CARD ===== */
+.card.power {
+  border-color: #4caf50;
+}
+
+.card.power.high {
+  border-color: #f0ad4e;
+}
+
+.card.power.critical {
+  border-color: #d9534f;
+  box-shadow: 0 0 15px rgba(217, 83, 79, 0.7);
+}
+
+.card.power h2 {
+  font-size: 1.1rem;
+}
+
+.card.power .metric {
+  font-size: 0.9rem;
+  color: #ddd;
+}
+
+.card.power .metric strong {
+  color: #fff;
+}
+
+.card.power .power-value {
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin: 4px 0;
+}

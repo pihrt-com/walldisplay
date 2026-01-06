@@ -109,3 +109,19 @@ RAISE3D_PRINTERS = [
         "model": "Pro3+"
     }
 ]
+
+# ===== SHELLY_DEVICES (LAN) =====
+SHELLY_DEVICES = [
+    {
+        "name": "Shelly-4PM-01",
+        "ip": "192.168.88.198",
+        "username": "",
+        "password": ""
+    },
+    {
+        "name": "Shelly-4PM-02",
+        "ip": "192.168.88.160",
+        "username": "",
+        "password": ""
+    }
+]

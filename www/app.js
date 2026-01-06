@@ -48,7 +48,17 @@ const I18N = {
       hour:   ["hodina", "hodiny", "hodin"],
       minute: ["minuta", "minuty", "minut"],
       second: ["sekunda", "sekundy", "sekund"]
-    }
+    },
+    energy: {
+      title: "Odběr farmy",
+      power: "Příkon",
+      voltage: "Napětí",
+      consumption: "Spotřeba",
+      unit_kw: "kW",
+      unit_w: "W",
+      unit_v: "V",
+      unit_kwh: "kWh"
+    }    
   },
 
   en: {
@@ -86,6 +96,16 @@ const I18N = {
       hour:   ["hour", "hours"],
       minute: ["minute", "minutes"],
       second: ["second", "seconds"]
+    },
+    energy: {
+      title: "Farm power",
+      power: "Power",
+      voltage: "Voltage",
+      consumption: "Consumption",
+      unit_kw: "kW",
+      unit_w: "W",
+      unit_v: "V",
+      unit_kwh: "kWh"
     }    
   },
 
@@ -124,7 +144,17 @@ const I18N = {
       hour:   ["Stunde", "Stunden"],
       minute: ["Minute", "Minuten"],
       second: ["Sekunde", "Sekunden"]
-    }    
+    },
+    energy: {
+      title: "Farmleistung",
+      power: "Leistung",
+      voltage: "Spannung",
+      consumption: "Verbrauch",
+      unit_kw: "kW",
+      unit_w: "W",
+      unit_v: "V",
+      unit_kwh: "kWh"
+    }     
   }
 };
 
@@ -300,10 +330,50 @@ function updateStatusBar(printers) {
   }
 }
 
-function render(printers, generatedAt) {
+function renderPowerCard(grid, power) {
+  if (!power) return;
+
+  const card = document.createElement("div");
+  card.classList.add("card", "power");
+
+  if (power.power_kw >= 3) {
+    card.classList.add("critical");
+  } else if (power.power_kw >= 1.5) {
+    card.classList.add("high");
+  }
+
+  card.innerHTML = `
+    <h2>${T.energy.title}</h2>
+
+    <div class="power-value">
+      ${power.power_kw} ${T.energy.unit_kw}
+    </div>
+
+    <div class="metric">
+      ${T.energy.power}:
+      <strong>${power.power_w} ${T.energy.unit_w}</strong>
+    </div>
+
+    <div class="metric">
+      ${T.energy.voltage}:
+      <strong>${power.voltage_v ?? "–"} ${T.energy.unit_v}</strong>
+    </div>
+
+    <div class="metric">
+      ${T.energy.consumption}:
+      <strong>${power.energy_kwh} ${T.energy.unit_kwh}</strong>
+    </div>
+  `;
+
+  grid.appendChild(card);
+}
+
+function render(printers, power, generatedAt) {
   const grid = document.getElementById("grid");
   grid.innerHTML = "";
 
+  renderPowerCard(grid, power);
+  
   const farmStatusEl = document.getElementById("farm-status");
   const bar = document.getElementById("status-bar");
 
@@ -389,7 +459,6 @@ function render(printers, generatedAt) {
   updateStatusBar(printers);
 }
 
-
 async function load() {
   try {
     const r = await fetch(DATA_SOURCE, { cache: "no-store" });
@@ -399,7 +468,7 @@ async function load() {
     }
 
     const data = await r.json();
-    render(data.printers, data.generated_at);
+    render(data.printers, data.power, data.generated_at);
     updateDateTime();
 
   } catch (e) {
@@ -416,7 +485,6 @@ async function load() {
     }
   }
 }
-
 
 load();
 setInterval(load, REFRESH_MS);

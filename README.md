@@ -36,6 +36,9 @@ Printers:
 -   Prusa MK3 farm (USB → PrusaLink multi-instance)
 -   Raise3D Pro2, Pro3 (LAN)
 
+Devices:
+-   Shelly 4PM for measuring voltage, consumption, and power usage from Shelly devices (LAN).
+
 [![](https://github.com/pihrt-com/walldisplay/blob/main/www%20test%20example/final_screen.png?raw=true)](https://github.com/pihrt-com/walldisplay/blob/main/www%20test%20example/final_screen.png)
 
 
@@ -75,14 +78,17 @@ GET /api/status
 - `http://localhost/api/status → JSON data`
 
 ## Backend
+### Printers
 -   `prusa_link.py` – local PrusaLink (XL, MK4, MK3)
 -   `prusa_farm.py` – local multi-instance MK3
 -   `raise3d.py` – local Raise (Pro2+, Pro3+)
 -   only one **JSON format** for all printers
+### Devices
+-   `shelly_4pm.py ` - local Shelly devices (Pro 4PM)
     
 ### Backend output (JSON)
 ```
-{"generated_at":1767091183,"printers":[{"name":"XL-01","vendor":"Prusa","model":"XL 5H","state":"offline"},{"name":"MK4-01","vendor":"Prusa","model":"MK4","state":"idle","job":null,"progress":0,"time_left":null},{"name":"MK3-09","vendor":"Prusa","model":"MK3","state":"error","job":null,"progress":0,"time_left":null},{"name":"MK3-03","vendor":"Prusa","model":"MK3","state":"error","job":null,"progress":0,"time_left":null},{"name":"MK3-07","vendor":"Prusa","model":"MK3","state":"error","job":null,"progress":0,"time_left":null},{"name":"MK3-13","vendor":"Prusa","model":"MK3","state":"error","job":null,"progress":0,"time_left":null},{"name":"MK3-12","vendor":"Prusa","model":"MK3","state":"error","job":null,"progress":0,"time_left":null},{"name":"MK3-10","vendor":"Prusa","model":"MK3","state":"error","job":null,"progress":0,"time_left":null},{"name":"MK3-08","vendor":"Prusa","model":"MK3","state":"error","job":null,"progress":0,"time_left":null},{"name":"MK3-11","vendor":"Prusa","model":"MK3","state":"error","job":null,"progress":0,"time_left":null},{"name":"MK3-02","vendor":"Prusa","model":"MK3","state":"error","job":null,"progress":0,"time_left":null},{"name":"MK3-06","vendor":"Prusa","model":"MK3","state":"error","job":null,"progress":0,"time_left":null},{"name":"MK3-05","vendor":"Prusa","model":"MK3","state":"error","job":null,"progress":0,"time_left":null},{"name":"MK3-01","vendor":"Prusa","model":"MK3","state":"error","job":null,"progress":0,"time_left":null},{"name":"MK3-04","vendor":"Prusa","model":"MK3","state":"error","job":null,"progress":0,"time_left":null},{"name":"Raise-Pro2","vendor":"Raise3D","model":"Pro2+","state":"idle","job":null,"progress":0,"time_left":null,"temps":{"nozzle":21,"bed":19}},{"name":"Raise-Pro3","vendor":"Raise3D","model":"Pro3+","state":"idle","job":null,"progress":0,"time_left":null,"temps":{"nozzle":25,"bed":20}}]}  
+{"generated_at":1767091183,"printers":[{"name":"XL-01","vendor":"Prusa","model":"XL 5H","state":"offline"},{"name":"MK4-01","vendor":"Prusa","model":"MK4","state":"idle","job":null,"progress":0,"time_left":null},{"name":"MK3-09","vendor":"Prusa","model":"MK3","state":"error","job":null,"progress":0,"time_left":null},{"name":"MK3-03","vendor":"Prusa","model":"MK3","state":"error","job":null,"progress":0,"time_left":null},{"name":"MK3-07","vendor":"Prusa","model":"MK3","state":"error","job":null,"progress":0,"time_left":null},{"name":"MK3-13","vendor":"Prusa","model":"MK3","state":"error","job":null,"progress":0,"time_left":null},{"name":"MK3-12","vendor":"Prusa","model":"MK3","state":"error","job":null,"progress":0,"time_left":null},{"name":"MK3-10","vendor":"Prusa","model":"MK3","state":"error","job":null,"progress":0,"time_left":null},{"name":"MK3-08","vendor":"Prusa","model":"MK3","state":"error","job":null,"progress":0,"time_left":null},{"name":"MK3-11","vendor":"Prusa","model":"MK3","state":"error","job":null,"progress":0,"time_left":null},{"name":"MK3-02","vendor":"Prusa","model":"MK3","state":"error","job":null,"progress":0,"time_left":null},{"name":"MK3-06","vendor":"Prusa","model":"MK3","state":"error","job":null,"progress":0,"time_left":null},{"name":"MK3-05","vendor":"Prusa","model":"MK3","state":"error","job":null,"progress":0,"time_left":null},{"name":"MK3-01","vendor":"Prusa","model":"MK3","state":"error","job":null,"progress":0,"time_left":null},{"name":"MK3-04","vendor":"Prusa","model":"MK3","state":"error","job":null,"progress":0,"time_left":null},{"name":"Raise-Pro2","vendor":"Raise3D","model":"Pro2+","state":"idle","job":null,"progress":0,"time_left":null,"temps":{"nozzle":21,"bed":19}},{"name":"Raise-Pro3","vendor":"Raise3D","model":"Pro3+","state":"idle","job":null,"progress":0,"time_left":null,"temps":{"nozzle":25,"bed":20}}], "power": {"power_w": 1842.5,"power_kw": 1.84,"voltage_v": 231.2,"energy_kwh": 1520.3}}  
 ```
 
 # Reinstalling on a new Raspberry Pi
@@ -162,11 +168,13 @@ xset -dpms
 ├── aggregator.py
 ├── remote_export.py
 ├── config.py
-└── printers/
+├── printers/
     ├─ init.py
     ├─ prusa_link.py
     ├─ raise3d.py    
     └─ prusa_farm.py
+└── devices/
+    └─ shelly_4pm.py   
 ```
 
 ## Test

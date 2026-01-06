@@ -2,13 +2,14 @@ import time
 import requests
 from app.config import REMOTE_EXPORT
 
-def send_remote_status(printers):
+def send_remote_status(printers, power=None):
     if not REMOTE_EXPORT.get("enabled"):
         return
 
     payload = {
         "generated_at": int(time.time()),
-        "printers": printers
+        "printers": printers,
+        "power": power,
     }
 
     try:
