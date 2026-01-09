@@ -2,7 +2,7 @@ import requests
 from requests.auth import HTTPBasicAuth
 
 
-def _fetch_status(device):
+def _get_status(device):
     url = f"http://{device['ip']}/rpc/Shelly.GetStatus"
 
     auth = None
@@ -14,32 +14,65 @@ def _fetch_status(device):
     return response.json()
 
 
+def _extract_voltages(data):
+    """
+    Shelly FW differs by model/firmware.
+    Voltage can be in:
+      - switch:0.voltage
+      - em:0.voltage
+      - sometimes on root (rare)
+    """
+    voltages = []
+
+    # rare case
+    if isinstance(data.get("voltage"), (int, float)):
+        voltages.append(float(data["voltage"]))
+
+    # switch channels
+    for key, value in data.items():
+        if key.startswith("switch:") and isinstance(value, dict):
+            v = value.get("voltage")
+            if isinstance(v, (int, float)):
+                voltages.append(float(v))
+
+    # EM measurement block
+    for key, value in data.items():
+        if key.startswith("em:") and isinstance(value, dict):
+            v = value.get("voltage")
+            if isinstance(v, (int, float)):
+                voltages.append(float(v))
+
+    return voltages
+
+
 def get_power_status(devices):
     total_power_w = 0.0
     total_energy_wh = 0.0
-    voltages = []
+    all_voltages = []
 
     for device in devices:
         try:
-            data = _fetch_status(device)
+            data = _get_status(device)
         except Exception as e:
-            print(f"Shelly {device.get('ip')} error: {e}")
+            print(f"Shelly {device.get('ip')} unreachable: {e}")
             continue
 
-        if "voltage" in data:
-            voltages.append(data["voltage"])
+        # collect voltages from this device
+        all_voltages.extend(_extract_voltages(data))
 
+        # sum channels
         for key, value in data.items():
-            if not key.startswith("switch:"):
-                continue
+            if key.startswith("switch:") and isinstance(value, dict):
+                total_power_w += value.get("apower", 0.0)
+                total_energy_wh += value.get("aenergy", {}).get("total", 0.0)
 
-            total_power_w += value.get("apower", 0.0)
-            total_energy_wh += value.get("aenergy", {}).get("total", 0.0)
+    voltage_v = None
+    if all_voltages:
+        voltage_v = round(sum(all_voltages) / len(all_voltages), 1)
 
     return {
-        "type": "power",
         "power_w": round(total_power_w, 1),
         "power_kw": round(total_power_w / 1000, 2),
-        "voltage_v": round(sum(voltages) / len(voltages), 1) if voltages else None,
+        "voltage_v": voltage_v,
         "energy_kwh": round(total_energy_wh / 1000, 2),
     }

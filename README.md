@@ -39,13 +39,14 @@ Printers:
 Devices:
 -   Shelly 4PM for measuring voltage, consumption, and power usage from Shelly devices (LAN).
 
+[![](https://github.com/pihrt-com/walldisplay/blob/main/farm.gif?raw=true)](https://github.com/pihrt-com/walldisplay/blob/main/farm.gif)
+
 [![](https://github.com/pihrt-com/walldisplay/blob/main/www%20test%20example/final_screen.png?raw=true)](https://github.com/pihrt-com/walldisplay/blob/main/www%20test%20example/final_screen.png)
 
 
 ## Remote json export
 - POST https://your_ip/update.php
 - Authorization: Bearer YOUR_SECRET_TOKEN
-
 
 ## Python libraries
 - Tested in  **Python 3.13** runs in **virtualenv** (`venv`)
