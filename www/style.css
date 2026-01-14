@@ -167,6 +167,74 @@ html, body {
   box-shadow: 0 0 15px rgba(240, 173, 78, 0.9);
 }
 
+/* ===== POWER CARD ===== */
+.card.power {
+  border-color: #4caf50;
+}
+
+.card.power.high {
+  border-color: #f0ad4e;
+}
+
+.card.power.critical {
+  border-color: #d9534f;
+  box-shadow: 0 0 15px rgba(217, 83, 79, 0.7);
+}
+
+.card.power h2 {
+  font-size: 1.1rem;
+}
+
+.card.power .metric {
+  font-size: 0.9rem;
+  color: #ddd;
+}
+
+.card.power .metric strong {
+  color: #fff;
+}
+
+.card.power .power-value {
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin: 4px 0;
+}
+
+.power-graph {
+  margin-top: 8px;
+  width: 100%;
+  height: 90px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 6px;
+}
+
+.power-graph-wrap {
+  position: relative;
+  margin-top: 8px;
+}
+
+.power-graph {
+  width: 100%;
+  height: 90px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 6px;
+  display: block;
+}
+
+.power-graph-tooltip {
+  position: absolute;
+  pointer-events: none;
+  background: rgba(0,0,0,0.85);
+  border: 1px solid rgba(255,255,255,0.2);
+  color: #fff;
+  font-size: 0.75rem;
+  padding: 6px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+  display: none;
+  z-index: 5;
+}
+
 /* ===== STATUS BAR STATES ===== */
 #status-bar.idle     { background-color: #cfcfcf; color: #000; }
 #status-bar.printing { background-color: #f0ad4e; color: #000; }
@@ -224,37 +292,12 @@ html, body {
     padding: 6px 10px;
     justify-content: flex-end;
   }
-}
 
-/* ===== POWER CARD ===== */
-.card.power {
-  border-color: #4caf50;
+  .power-graph {
+  width: 100%;
+  height: 90px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 6px;
+  display: block;
 }
-
-.card.power.high {
-  border-color: #f0ad4e;
-}
-
-.card.power.critical {
-  border-color: #d9534f;
-  box-shadow: 0 0 15px rgba(217, 83, 79, 0.7);
-}
-
-.card.power h2 {
-  font-size: 1.1rem;
-}
-
-.card.power .metric {
-  font-size: 0.9rem;
-  color: #ddd;
-}
-
-.card.power .metric strong {
-  color: #fff;
-}
-
-.card.power .power-value {
-  font-size: 1.4rem;
-  font-weight: 700;
-  margin: 4px 0;
 }
