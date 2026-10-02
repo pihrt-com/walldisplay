@@ -38,6 +38,13 @@ Printers:
 
 Devices:
 -   Shelly 4PM for measuring voltage, consumption, and power usage from Shelly devices (LAN).
+-   Shelly Plus H&T for temperature and humidity through Shelly Cloud.
+
+## Shelly Plus H&T (Shelly Cloud)
+Set `SHELLY_CLOUD["enabled"]` to `True` in `app/config.py`, then enter the Shelly Cloud server URI, authorization key, and each sensor's display name and device ID. The authorization key remains on the Raspberry Pi and is never included in `status.json`. The display shows a separate card for every configured sensor with temperature, humidity, and the source measurement time. Cloud responses are cached for 60 seconds by default to respect Shelly Cloud API limits; change `refresh_seconds` only when necessary.
+
+## Changes
+2026-10-02 — `walldisplay`: Added Shelly Plus H&T support through Shelly Cloud, including configurable sensors on the Raspberry Pi, secure backend export, and temperature/humidity cards in the web display.
 
 [![](https://github.com/pihrt-com/walldisplay/blob/main/farm.gif?raw=true)](https://github.com/pihrt-com/walldisplay/blob/main/farm.gif)
 

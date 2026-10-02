@@ -60,6 +60,12 @@ const I18N = {
       unit_w: "W",
       unit_v: "V",
       unit_kwh: "kWh"
+    },
+    sensor: {
+      temperature: "Teplota",
+      humidity: "Vlhkost",
+      measured_at: "Údaj z",
+      unavailable: "Data ze Shelly nejsou k dispozici"
     }
   },
 
@@ -106,6 +112,12 @@ const I18N = {
       unit_w: "W",
       unit_v: "V",
       unit_kwh: "kWh"
+    },
+    sensor: {
+      temperature: "Temperature",
+      humidity: "Humidity",
+      measured_at: "Reading from",
+      unavailable: "Shelly data is unavailable"
     }
   },
 
@@ -152,6 +164,12 @@ const I18N = {
       unit_w: "W",
       unit_v: "V",
       unit_kwh: "kWh"
+    },
+    sensor: {
+      temperature: "Temperatur",
+      humidity: "Luftfeuchtigkeit",
+      measured_at: "Messung von",
+      unavailable: "Shelly-Daten nicht verfügbar"
     }
   }
 };
@@ -311,6 +329,7 @@ const DOM = {
   grid: document.getElementById("grid"),
   powerCard: null,
   printerCards: new Map(), // key=name -> element
+  sensorCards: new Map(), // key=device_id -> element
 };
 
 let lastPowerHistoryHash = null;
@@ -373,6 +392,76 @@ function updatePowerCard(power, powerHistory) {
     lastPowerHistoryHash = hash;
     const canvas = card.querySelector(".power-graph");
     renderPowerGraph(canvas, samples);
+  }
+}
+
+// =======================
+// SHELLY CLOUD SENSOR CARDS
+// =======================
+function createSensorCard(sensor) {
+  const card = document.createElement("div");
+  card.className = "card sensor";
+  card.dataset.sensorId = sensor.device_id;
+  card.innerHTML = `
+    <h2 class="sensor-name"></h2>
+    <div class="sensor-temperature"></div>
+    <div class="sensor-humidity"></div>
+    <div class="sensor-measured-at"></div>
+  `;
+  return card;
+}
+
+function formatSensorTimestamp(value) {
+  if (typeof value === "number") {
+    return new Date(value * 1000).toLocaleString(locale());
+  }
+  if (typeof value !== "string" || !value.trim()) return "–";
+
+  const parsed = Date.parse(value);
+  return Number.isNaN(parsed) ? value : new Date(parsed).toLocaleString(locale());
+}
+
+function updateSensorCard(card, sensor) {
+  const online = sensor.state === "online";
+  card.className = `card sensor ${online ? "online" : "offline"}`;
+  card.querySelector(".sensor-name").textContent = sensor.name || sensor.device_id;
+
+  const temperature = card.querySelector(".sensor-temperature");
+  const humidity = card.querySelector(".sensor-humidity");
+  const measuredAt = card.querySelector(".sensor-measured-at");
+  if (!online) {
+    temperature.textContent = T.sensor.unavailable;
+    humidity.textContent = "";
+    measuredAt.textContent = sensor.measured_at
+      ? `${T.sensor.measured_at}: ${formatSensorTimestamp(sensor.measured_at)}`
+      : "";
+    return;
+  }
+
+  temperature.textContent = `${T.sensor.temperature}: ${sensor.temperature_c ?? "–"} °C`;
+  humidity.textContent = `${T.sensor.humidity}: ${sensor.humidity_percent ?? "–"} %`;
+  measuredAt.textContent = `${T.sensor.measured_at}: ${formatSensorTimestamp(sensor.measured_at)}`;
+}
+
+function updateSensors(sensors) {
+  const sorted = sensors.slice().sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+  for (const sensor of sorted) {
+    if (!sensor.device_id) continue;
+    let card = DOM.sensorCards.get(sensor.device_id);
+    if (!card) {
+      card = createSensorCard(sensor);
+      DOM.sensorCards.set(sensor.device_id, card);
+      DOM.grid.appendChild(card);
+    }
+    updateSensorCard(card, sensor);
+  }
+
+  const ids = new Set(sorted.map(sensor => sensor.device_id));
+  for (const [id, card] of DOM.sensorCards.entries()) {
+    if (!ids.has(id)) {
+      card.remove();
+      DOM.sensorCards.delete(id);
+    }
   }
 }
 
@@ -727,6 +816,7 @@ async function load() {
 
     // update DOM without full rebuild
     updatePowerCard(data.power, powerHistory);
+    updateSensors(data.sensors || []);
     updatePrinters(data.printers || []);
     updateFarmStatus(data.printers || [], data.generated_at);
 

@@ -200,6 +200,32 @@ html, body {
   margin: 4px 0;
 }
 
+/* ===== SHELLY CLOUD SENSOR CARD ===== */
+.card.sensor {
+  border-color: #5bc0de;
+}
+
+.card.sensor.offline {
+  border-color: #777;
+}
+
+.sensor-temperature {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-top: 4px;
+}
+
+.sensor-humidity {
+  color: #ddd;
+  font-size: 1rem;
+}
+
+.sensor-measured-at {
+  color: #aaa;
+  font-size: 0.8rem;
+  margin-top: auto;
+}
+
 .power-graph {
   margin-top: 8px;
   width: 100%;

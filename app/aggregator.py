@@ -3,6 +3,7 @@ from app.config import (
     PRUSA_FARM,
     RAISE3D_PRINTERS,
     SHELLY_DEVICES,
+    SHELLY_CLOUD,
 )
 
 from app.printers.prusa_link import get_status as prusa_link_status
@@ -10,6 +11,7 @@ from app.printers.prusa_farm import get_all as prusa_farm_status
 from app.printers.raise3d import get_status as raise3d_status
 
 from app.devices.shelly_4pm import get_power_status
+from app.devices.shelly_cloud import get_sensor_statuses
 from app.remote_export import send_remote_status
 
 import time
@@ -56,10 +58,13 @@ def collect():
         except Exception as e:
             print(f"Shelly aggregation error: {e}")
 
-    send_remote_status(printers, power)
+    sensors = get_sensor_statuses(SHELLY_CLOUD)
+
+    send_remote_status(printers, power, sensors)
 
     return {
         "generated_at": int(time.time()),
         "printers": printers,
         "power": power,
+        "sensors": sensors,
     }

@@ -125,3 +125,22 @@ SHELLY_DEVICES = [
         "password": ""
     }
 ]
+
+# ===== SHELLY CLOUD: PLUS H&T SENSORS =====
+# Server URI and authorization key are available in the Shelly Smart Control app
+# under User settings -> Authorization cloud key. Keep the key only on the Pi.
+SHELLY_CLOUD = {
+    "enabled": False,
+    "server_url": "shelly-153-eu.shelly.cloud",
+    "auth_key": "PASTE_YOUR_SHELLY_CLOUD_AUTH_KEY_HERE",
+    # The display refreshes every five seconds, but Shelly Cloud permits only
+    # one API call per second. Battery sensors also do not report new values
+    # every few seconds, so cache each cloud response for one minute.
+    "refresh_seconds": 60,
+    "sensors": [
+        {
+            "name": "teplota 3D",
+            "device_id": "a0a3b3ddbfe4",
+        },
+    ],
+}
