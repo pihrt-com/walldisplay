@@ -53,7 +53,7 @@ Set `SHELLY_CLOUD["enabled"]` to `True` in `app/config.py`, then enter the Shell
 
 ## Remote json export
 
-The remote page adds a changing query parameter to every JSON request, in addition to `cache: "no-store"`. This prevents browser, proxy, or CDN caches from showing an old `status.json` response as current data. The backend also logs a failed HTTP response from `update.php`; check `journalctl -u wallboard` if the remote timestamp stops moving.
+The remote page adds a changing query parameter to every JSON request, in addition to `cache: "no-store"`. Its `index.html` also versions the JavaScript URL so a browser with a long-lived cached `app.js` receives this behavior immediately. This prevents browser, proxy, or CDN caches from showing an old `status.json` response as current data. The backend also logs a failed HTTP response from `update.php`; check `journalctl -u wallboard` if the remote timestamp stops moving.
 
 - POST https://your_ip/update.php
 - Authorization: Bearer YOUR_SECRET_TOKEN
