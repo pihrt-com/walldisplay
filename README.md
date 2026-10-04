@@ -46,6 +46,10 @@ Set `SHELLY_CLOUD["enabled"]` to `True` in `app/config.py`, then enter the Shell
 ## Changes
 2026-10-02 — `walldisplay`: Added Shelly Plus H&T support through Shelly Cloud, including configurable sensors on the Raspberry Pi, secure backend export, and temperature/humidity cards in the web display.
 
+## Maintenance skill
+
+Repository-maintained diagnostics for the Raspberry Pi deployment are in [`.codex/skills/wallboard-diagnostics/SKILL.md`](.codex/skills/wallboard-diagnostics/SKILL.md).
+
 [![](https://github.com/pihrt-com/walldisplay/blob/main/farm.gif?raw=true)](https://github.com/pihrt-com/walldisplay/blob/main/farm.gif)
 
 [![](https://github.com/pihrt-com/walldisplay/blob/main/www%20test%20example/final_screen.png?raw=true)](https://github.com/pihrt-com/walldisplay/blob/main/www%20test%20example/final_screen.png)
