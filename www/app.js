@@ -16,6 +16,11 @@ const POWER_HISTORY_SOURCE = location.hostname === "localhost"
 
 const REFRESH_MS = 5000;
 
+function withoutCache(source) {
+  const separator = source.includes("?") ? "&" : "?";
+  return `${source}${separator}_=${Date.now()}`;
+}
+
 const I18N = {
   cs: {
     ui: { title: "3D Tisková farma – Martin Pihrt" },
@@ -796,7 +801,7 @@ function renderPowerGraph(canvas, samples) {
 // =======================
 async function loadPowerHistory() {
   try {
-    const r = await fetch(POWER_HISTORY_SOURCE, { cache: "no-store" });
+    const r = await fetch(withoutCache(POWER_HISTORY_SOURCE), { cache: "no-store" });
     if (!r.ok) return null;
     return await r.json();
   } catch {
@@ -806,7 +811,7 @@ async function loadPowerHistory() {
 
 async function load() {
   try {
-    const r = await fetch(DATA_SOURCE, { cache: "no-store" });
+    const r = await fetch(withoutCache(DATA_SOURCE), { cache: "no-store" });
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
 
     const data = await r.json();

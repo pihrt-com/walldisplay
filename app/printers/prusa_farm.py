@@ -18,7 +18,23 @@ def get_all(cfg):
 
     base = cfg["base_url"]
 
-    for p in cfg["printers"]:
+    configured_printers = cfg.get("printers")
+    if configured_printers is None:
+        # Earlier wallboard installations store the farm as an instance-number
+        # mapping. Keep that deployed configuration working after the newer
+        # list-based configuration format was introduced.
+        instances = cfg.get("instances", {})
+        if not isinstance(instances, dict):
+            raise ValueError("PRUSA_FARM instances must be a dictionary")
+        configured_printers = [
+            {"instance": instance, **printer}
+            for instance, printer in instances.items()
+        ]
+
+    if not isinstance(configured_printers, list):
+        raise ValueError("PRUSA_FARM printers must be a list")
+
+    for p in configured_printers:
         try:
             r = requests.get(
                 f"{base}/{p['instance']}/api/v1/status",

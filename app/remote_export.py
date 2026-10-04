@@ -14,7 +14,7 @@ def send_remote_status(printers, power=None, sensors=None):
     }
 
     try:
-        requests.post(
+        response = requests.post(
             REMOTE_EXPORT["url"],
             json=payload,
             headers={
@@ -23,5 +23,6 @@ def send_remote_status(printers, power=None, sensors=None):
             },
             timeout=5
         )
+        response.raise_for_status()
     except Exception as e:
         print("Remote export failed:", e)

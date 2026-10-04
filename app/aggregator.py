@@ -35,8 +35,18 @@ def collect():
     # MK3 farm (USB, multi-instance)
     try:
         printers.extend(prusa_farm_status(PRUSA_FARM))
-    except Exception:
-        pass
+    except Exception as exc:
+        print(f"MK3 farm aggregation error: {exc}")
+        # Keep the cards visible when the farm configuration itself is invalid
+        # or the collector cannot start. Per-printer connection failures are
+        # already handled by prusa_farm.get_all().
+        for printer in PRUSA_FARM.get("printers", []):
+            printers.append({
+                "name": printer.get("name", "MK3"),
+                "vendor": "Prusa",
+                "model": "MK3",
+                "state": "offline",
+            })
 
     # Raise Pro2 and Pro3
     for p in RAISE3D_PRINTERS:
@@ -58,7 +68,12 @@ def collect():
         except Exception as e:
             print(f"Shelly aggregation error: {e}")
 
-    sensors = get_sensor_statuses(SHELLY_CLOUD)
+    try:
+        sensors = get_sensor_statuses(SHELLY_CLOUD)
+    except Exception as exc:
+        # A cloud integration failure must not block printer status delivery.
+        print(f"Shelly Cloud aggregation error: {exc}")
+        sensors = []
 
     send_remote_status(printers, power, sensors)
 
