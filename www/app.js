@@ -652,9 +652,10 @@ function updateFarmStatus(printers, generatedAt) {
 function renderTelemetryGraph(canvas, samples, series) {
   if (!canvas) return;
 
+  canvas._renderGraph = () => renderTelemetryGraph(canvas, samples, series);
   const wrap = canvas.closest(".power-graph-wrap");
   const cssW = (wrap?.clientWidth || canvas.clientWidth || 320);
-  const cssH = 90;
+  const cssH = window.matchMedia("(max-width: 768px)").matches ? 150 : 90;
 
   const dpr = window.devicePixelRatio || 1;
   const pixelWidth = Math.floor(cssW * dpr);
@@ -727,7 +728,7 @@ function renderTelemetryGraph(canvas, samples, series) {
 
     // grid + axes
     ctx.save();
-    ctx.font = "11px Arial";
+    ctx.font = cssH > 90 ? "13px Arial" : "11px Arial";
     ctx.lineWidth = 1;
 
     const ticksY = 4;
@@ -798,7 +799,7 @@ function renderTelemetryGraph(canvas, samples, series) {
     }
     if (series.length > 1) {
       let legendX = padL;
-      ctx.font = "10px Arial";
+      ctx.font = cssH > 90 ? "12px Arial" : "10px Arial";
       for (const item of series) {
         ctx.fillStyle = item.color;
         const label = item.key === "temperature_c" ? T.sensor.temperature : item.key === "humidity_percent" ? T.sensor.humidity : item.unit;
@@ -985,3 +986,11 @@ setInterval(() => {
   if (lastKnownStatus) refreshHistories(lastKnownStatus);
 }, HISTORY_REFRESH_MS);
 setInterval(updateDateTime, 1000);
+
+let graphResizeTimer = null;
+window.addEventListener("resize", () => {
+  clearTimeout(graphResizeTimer);
+  graphResizeTimer = setTimeout(() => {
+    document.querySelectorAll(".telemetry-graph").forEach(canvas => canvas._renderGraph?.());
+  }, 150);
+});
