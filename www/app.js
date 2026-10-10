@@ -349,6 +349,8 @@ const DOM = {
 
 let lastPowerHistoryHash = null;
 const lastSensorHistoryHashes = new Map();
+let lastKnownStatus = null;
+let loadInProgress = false;
 
 // =======================
 // POWER CARD CREATE/UPDATE
@@ -407,7 +409,11 @@ function updatePowerCard(power, powerHistory) {
   if (hash !== lastPowerHistoryHash) {
     lastPowerHistoryHash = hash;
     const canvas = card.querySelector(".power-graph");
-    renderTelemetryGraph(canvas, samples, [{ key: "kw", color: "#ffffff", unit: T.energy.unit_kw, digits: 2 }]);
+    try {
+      renderTelemetryGraph(canvas, samples, [{ key: "kw", color: "#ffffff", unit: T.energy.unit_kw, digits: 2 }]);
+    } catch (error) {
+      console.warn("POWER GRAPH ERROR", error);
+    }
   }
 }
 
@@ -465,10 +471,14 @@ function updateSensorCard(card, sensor, sensorHistory) {
   const hash = samples.length ? `${samples.length}:${samples[samples.length - 1].ts}:${samples[samples.length - 1].temperature_c}:${samples[samples.length - 1].humidity_percent}` : "empty";
   if (lastSensorHistoryHashes.get(sensor.device_id) !== hash) {
     lastSensorHistoryHashes.set(sensor.device_id, hash);
-    renderTelemetryGraph(card.querySelector(".sensor-graph"), samples, [
-      { key: "temperature_c", color: "#f0ad4e", unit: T.sensor.temperature_unit, digits: 1 },
-      { key: "humidity_percent", color: "#5bc0de", unit: T.sensor.humidity_unit, digits: 0 }
-    ]);
+    try {
+      renderTelemetryGraph(card.querySelector(".sensor-graph"), samples, [
+        { key: "temperature_c", color: "#f0ad4e", unit: T.sensor.temperature_unit, digits: 1 },
+        { key: "humidity_percent", color: "#5bc0de", unit: T.sensor.humidity_unit, digits: 0 }
+      ]);
+    } catch (error) {
+      console.warn("SENSOR GRAPH ERROR", error);
+    }
   }
 }
 
@@ -647,13 +657,17 @@ function renderTelemetryGraph(canvas, samples, series) {
   const w = cssW;
   const h = cssH;
 
-  const points = samples.filter(s => typeof s.ts === "number");
-  const validValues = series.flatMap(item => points.map(point => point[item.key]).filter(value => typeof value === "number"));
-  if (points.length < 2 || validValues.length < 2) {
+  const safeSamples = Array.isArray(samples) ? samples : [];
+  const safeSeries = Array.isArray(series) ? series.filter(item => item && typeof item.key === "string") : [];
+  const points = safeSamples.filter(s => s && typeof s.ts === "number" && Number.isFinite(s.ts));
+  const validSeries = safeSeries.filter(item => points.some(point => typeof point[item.key] === "number" && Number.isFinite(point[item.key])));
+  const validValues = validSeries.flatMap(item => points.map(point => point[item.key]).filter(value => typeof value === "number" && Number.isFinite(value)));
+  if (points.length < 2 || validValues.length < 2 || validSeries.length === 0) {
     ctx.clearRect(0, 0, cssW, cssH);
     return;
   }
 
+  series = validSeries;
   const padL = 42, padR = series.length > 1 ? 38 : 8, padT = 18, padB = 18;
   const gw = w - padL - padR;
   const gh = h - padT - padB;
@@ -680,6 +694,7 @@ function renderTelemetryGraph(canvas, samples, series) {
   }));
   const y = (value, key) => {
     const scale = scales.get(key);
+    if (!scale || !Number.isFinite(value)) return padT + gh / 2;
     return padT + (1 - ((value - scale.min) / scale.span)) * gh;
   };
 
@@ -807,7 +822,7 @@ function renderTelemetryGraph(canvas, samples, series) {
     ctx.stroke();
 
     for (const item of series) {
-      if (typeof nearest[item.key] !== "number") continue;
+      if (!scales.has(item.key) || typeof nearest[item.key] !== "number" || !Number.isFinite(nearest[item.key])) continue;
       ctx.beginPath();
       ctx.arc(nx, y(nearest[item.key], item.key), 4, 0, Math.PI * 2);
       ctx.fillStyle = item.color;
@@ -836,7 +851,7 @@ function renderTelemetryGraph(canvas, samples, series) {
     const d = new Date(nearest.ts * 1000);
     const time = d.toLocaleTimeString(locale(), { hour: "2-digit", minute: "2-digit" });
 
-    const values = series.map(item => typeof nearest[item.key] === "number"
+    const values = series.map(item => scales.has(item.key) && typeof nearest[item.key] === "number" && Number.isFinite(nearest[item.key])
       ? `<span style="color:${item.color}">${nearest[item.key].toFixed(item.digits)} ${item.unit}</span>`
       : null).filter(Boolean).join("<br>");
     tooltip.innerHTML = `${values}<br>${time}`;
@@ -867,34 +882,50 @@ async function loadHistory(source) {
 }
 
 async function load() {
+  if (loadInProgress) return;
+  loadInProgress = true;
   try {
     const r = await fetch(withoutCache(DATA_SOURCE), { cache: "no-store" });
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
 
     const data = await r.json();
+    lastKnownStatus = data;
 
-    const [powerHistory, sensorHistory] = await Promise.all([
-      loadHistory(POWER_HISTORY_SOURCE),
-      loadHistory(SENSOR_HISTORY_SOURCE)
-    ]);
-    const effectivePowerHistory = powerHistory || data.power_history || null;
-    const effectiveSensorHistory = sensorHistory || data.sensor_history || null;
+    const effectivePowerHistory = data.power_history || null;
+    const effectiveSensorHistory = data.sensor_history || null;
 
-    // update DOM without full rebuild
+    // Render live status immediately; history endpoints must not delay the cards.
     updatePowerCard(data.power, effectivePowerHistory);
     updateSensors(data.sensors || [], effectiveSensorHistory);
     updatePrinters(data.printers || []);
     updateFarmStatus(data.printers || [], data.generated_at);
 
     updateDateTime();
+
+    Promise.all([
+      loadHistory(POWER_HISTORY_SOURCE),
+      loadHistory(SENSOR_HISTORY_SOURCE)
+    ]).then(([loadedPowerHistory, loadedSensorHistory]) => {
+      if (loadedPowerHistory) updatePowerCard(data.power, loadedPowerHistory);
+      if (loadedSensorHistory) updateSensors(data.sensors || [], loadedSensorHistory);
+    }).catch(error => console.warn("HISTORY LOAD ERROR", error));
   } catch (e) {
     console.error("DATA LOAD ERROR", e);
 
     const farmStatusEl = document.getElementById("farm-status");
     const bar = document.getElementById("status-bar");
 
-    if (farmStatusEl) farmStatusEl.textContent = `❌ ${T.farm.data_unavailable}`;
+    if (lastKnownStatus) {
+      updatePowerCard(lastKnownStatus.power, lastKnownStatus.power_history);
+      updateSensors(lastKnownStatus.sensors || [], lastKnownStatus.sensor_history);
+      updatePrinters(lastKnownStatus.printers || []);
+      updateFarmStatus(lastKnownStatus.printers || [], lastKnownStatus.generated_at);
+    } else if (farmStatusEl) {
+      farmStatusEl.textContent = `❌ ${T.farm.data_unavailable}`;
+    }
     if (bar) bar.classList.add("outdated");
+  } finally {
+    loadInProgress = false;
   }
 }
 

@@ -46,6 +46,8 @@ Set `SHELLY_CLOUD["enabled"]` to `True` in `app/config.py`, then enter the Shell
 The power card and each temperature/humidity card include a 12-hour history graph. The Raspberry Pi stores samples locally under `app/data/history/` by default and serves them through `/api/power_history` and `/api/sensor_history`; set `WALLDISPLAY_HISTORY_DIR` to a persistent writable directory if the application code directory is read-only or replaced during updates. Local power and sensor samples are saved at most once per minute. The remote PHP receiver builds its own history from incoming live measurements and stores `power_history.json` and `sensor_history.json` beside `status.json`; remote samples are also limited to one per minute.
 
 ## Changes
+2026-10-10 — `walldisplay`: Made telemetry history loading independent from live status rendering, retained last known Shelly readings on Cloud request failures, and moved Shelly refreshes and remote exports off the `/api/status` response path.
+
 2026-10-10 — `walldisplay`: Added local power and sensor history storage/API, remote temperature and humidity history, and graphs in power and sensor cards.
 
 2026-10-02 — `walldisplay`: Added Shelly Plus H&T support through Shelly Cloud, including configurable sensors on the Raspberry Pi, secure backend export, and temperature/humidity cards in the web display.

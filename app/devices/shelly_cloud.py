@@ -6,7 +6,7 @@ from typing import Any
 import requests
 
 
-TIMEOUT_SECONDS = 10
+TIMEOUT_SECONDS = 4
 _CACHE: dict[str, tuple[float, dict[str, Any]]] = {}
 
 
@@ -106,11 +106,16 @@ def get_sensor_statuses(cloud: dict[str, Any]) -> list[dict[str, Any]]:
             result = _read_sensor(cloud, sensor)
         except Exception as exc:
             print(f"Shelly Cloud {sensor['device_id']} error: {exc}")
-            result = {
-                "name": sensor["name"], "device_id": sensor["device_id"], "state": "offline",
-                "temperature_c": None, "humidity_percent": None,
-                "measured_at": None, "fetched_at": int(time.time()),
-            }
+            if cached:
+                result = dict(cached[1])
+                result["fetched_at"] = int(time.time())
+                result["stale"] = True
+            else:
+                result = {
+                    "name": sensor["name"], "device_id": sensor["device_id"], "state": "offline",
+                    "temperature_c": None, "humidity_percent": None,
+                    "measured_at": None, "fetched_at": int(time.time()),
+                }
         _CACHE[cache_key] = (now, result)
         results.append(result)
     return results

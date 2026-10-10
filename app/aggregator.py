@@ -16,6 +16,30 @@ from app.remote_export import send_remote_status
 from app.history import record_power, record_sensors
 
 import time
+import threading
+
+
+_BACKGROUND_LOCK = threading.Lock()
+_BACKGROUND_RUNNING: set[str] = set()
+_LAST_POWER = None
+_LAST_SENSORS: list[dict] = []
+
+
+def _run_background_once(key, callback):
+    with _BACKGROUND_LOCK:
+        if key in _BACKGROUND_RUNNING:
+            return False
+        _BACKGROUND_RUNNING.add(key)
+
+    def run():
+        try:
+            callback()
+        finally:
+            with _BACKGROUND_LOCK:
+                _BACKGROUND_RUNNING.discard(key)
+
+    threading.Thread(target=run, name=f"wallboard-{key}", daemon=True).start()
+    return True
 
 
 def collect():
@@ -62,23 +86,32 @@ def collect():
             })
 
     # Energy (Shelly)
-    power = None
+    global _LAST_POWER, _LAST_SENSORS
     if SHELLY_DEVICES:
-        try:
-            power = get_power_status(SHELLY_DEVICES)
-        except Exception as e:
-            print(f"Shelly aggregation error: {e}")
+        def refresh_power():
+            global _LAST_POWER
+            try:
+                _LAST_POWER = get_power_status(SHELLY_DEVICES)
+            except Exception as exc:
+                print(f"Shelly aggregation error: {exc}")
+        _run_background_once("power", refresh_power)
 
-    try:
-        sensors = get_sensor_statuses(SHELLY_CLOUD)
-    except Exception as exc:
-        # A cloud integration failure must not block printer status delivery.
-        print(f"Shelly Cloud aggregation error: {exc}")
-        sensors = []
+    if SHELLY_CLOUD.get("enabled"):
+        def refresh_sensors():
+            global _LAST_SENSORS
+            try:
+                _LAST_SENSORS = get_sensor_statuses(SHELLY_CLOUD)
+            except Exception as exc:
+                # Keep the last successful sensor payload during Cloud errors.
+                print(f"Shelly Cloud aggregation error: {exc}")
+        _run_background_once("sensors", refresh_sensors)
+
+    power = _LAST_POWER
+    sensors = _LAST_SENSORS if SHELLY_CLOUD.get("enabled") else []
 
     power_history = record_power(power)
     sensor_history = record_sensors(sensors)
-    send_remote_status(printers, power, sensors)
+    _run_background_once("remote-export", lambda: send_remote_status(printers, power, sensors))
 
     return {
         "generated_at": int(time.time()),
