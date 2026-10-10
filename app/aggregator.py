@@ -13,6 +13,7 @@ from app.printers.raise3d import get_status as raise3d_status
 from app.devices.shelly_4pm import get_power_status
 from app.devices.shelly_cloud import get_sensor_statuses
 from app.remote_export import send_remote_status
+from app.history import record_power, record_sensors
 
 import time
 
@@ -75,6 +76,8 @@ def collect():
         print(f"Shelly Cloud aggregation error: {exc}")
         sensors = []
 
+    power_history = record_power(power)
+    sensor_history = record_sensors(sensors)
     send_remote_status(printers, power, sensors)
 
     return {
@@ -82,4 +85,6 @@ def collect():
         "printers": printers,
         "power": power,
         "sensors": sensors,
+        "power_history": power_history,
+        "sensor_history": sensor_history,
     }

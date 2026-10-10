@@ -43,7 +43,11 @@ Devices:
 ## Shelly Plus H&T (Shelly Cloud)
 Set `SHELLY_CLOUD["enabled"]` to `True` in `app/config.py`, then enter the Shelly Cloud server URI, authorization key, and each sensor's display name and device ID. The authorization key remains on the Raspberry Pi and is never included in `status.json`. The display shows a separate card for every configured sensor with temperature, humidity, and the source measurement time. Cloud responses are cached for 60 seconds by default to respect Shelly Cloud API limits; change `refresh_seconds` only when necessary.
 
+The power card and each temperature/humidity card include a 12-hour history graph. The Raspberry Pi stores samples locally under `app/data/history/` by default and serves them through `/api/power_history` and `/api/sensor_history`; set `WALLDISPLAY_HISTORY_DIR` to a persistent writable directory if the application code directory is read-only or replaced during updates. Local power and sensor samples are saved at most once per minute. The remote PHP receiver builds its own history from incoming live measurements and stores `power_history.json` and `sensor_history.json` beside `status.json`; remote samples are also limited to one per minute.
+
 ## Changes
+2026-10-10 — `walldisplay`: Added local power and sensor history storage/API, remote temperature and humidity history, and graphs in power and sensor cards.
+
 2026-10-02 — `walldisplay`: Added Shelly Plus H&T support through Shelly Cloud, including configurable sensors on the Raspberry Pi, secure backend export, and temperature/humidity cards in the web display.
 
 ## Maintenance skill

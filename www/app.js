@@ -14,6 +14,10 @@ const POWER_HISTORY_SOURCE = location.hostname === "localhost"
   ? "/api/power_history"
   : "power_history.json";
 
+const SENSOR_HISTORY_SOURCE = location.hostname === "localhost"
+  ? "/api/sensor_history"
+  : "sensor_history.json";
+
 const REFRESH_MS = 5000;
 
 function withoutCache(source) {
@@ -70,7 +74,9 @@ const I18N = {
       temperature: "Teplota",
       humidity: "Vlhkost",
       measured_at: "Údaj z",
-      unavailable: "Data ze Shelly nejsou k dispozici"
+      unavailable: "Data ze Shelly nejsou k dispozici",
+      temperature_unit: "°C",
+      humidity_unit: "%"
     }
   },
 
@@ -122,7 +128,9 @@ const I18N = {
       temperature: "Temperature",
       humidity: "Humidity",
       measured_at: "Reading from",
-      unavailable: "Shelly data is unavailable"
+      unavailable: "Shelly data is unavailable",
+      temperature_unit: "°C",
+      humidity_unit: "%"
     }
   },
 
@@ -174,7 +182,9 @@ const I18N = {
       temperature: "Temperatur",
       humidity: "Luftfeuchtigkeit",
       measured_at: "Messung von",
-      unavailable: "Shelly-Daten nicht verfügbar"
+      unavailable: "Shelly-Daten nicht verfügbar",
+      temperature_unit: "°C",
+      humidity_unit: "%"
     }
   }
 };
@@ -338,6 +348,7 @@ const DOM = {
 };
 
 let lastPowerHistoryHash = null;
+const lastSensorHistoryHashes = new Map();
 
 // =======================
 // POWER CARD CREATE/UPDATE
@@ -355,8 +366,8 @@ function createPowerCard() {
     <div class="metric power-consumption"></div>
 
     <div class="power-graph-wrap">
-      <canvas class="power-graph"></canvas>
-      <div class="power-graph-tooltip"></div>
+      <canvas class="power-graph telemetry-graph"></canvas>
+      <div class="power-graph-tooltip telemetry-graph-tooltip"></div>
     </div>
   `;
 
@@ -396,7 +407,7 @@ function updatePowerCard(power, powerHistory) {
   if (hash !== lastPowerHistoryHash) {
     lastPowerHistoryHash = hash;
     const canvas = card.querySelector(".power-graph");
-    renderPowerGraph(canvas, samples);
+    renderTelemetryGraph(canvas, samples, [{ key: "kw", color: "#ffffff", unit: T.energy.unit_kw, digits: 2 }]);
   }
 }
 
@@ -412,6 +423,10 @@ function createSensorCard(sensor) {
     <div class="sensor-temperature"></div>
     <div class="sensor-humidity"></div>
     <div class="sensor-measured-at"></div>
+    <div class="power-graph-wrap sensor-graph-wrap">
+      <canvas class="power-graph telemetry-graph sensor-graph"></canvas>
+      <div class="power-graph-tooltip telemetry-graph-tooltip"></div>
+    </div>
   `;
   return card;
 }
@@ -426,7 +441,7 @@ function formatSensorTimestamp(value) {
   return Number.isNaN(parsed) ? value : new Date(parsed).toLocaleString(locale());
 }
 
-function updateSensorCard(card, sensor) {
+function updateSensorCard(card, sensor, sensorHistory) {
   const online = sensor.state === "online";
   card.className = `card sensor ${online ? "online" : "offline"}`;
   card.querySelector(".sensor-name").textContent = sensor.name || sensor.device_id;
@@ -440,15 +455,24 @@ function updateSensorCard(card, sensor) {
     measuredAt.textContent = sensor.measured_at
       ? `${T.sensor.measured_at}: ${formatSensorTimestamp(sensor.measured_at)}`
       : "";
-    return;
+  } else {
+    temperature.textContent = `${T.sensor.temperature}: ${sensor.temperature_c ?? "–"} ${T.sensor.temperature_unit}`;
+    humidity.textContent = `${T.sensor.humidity}: ${sensor.humidity_percent ?? "–"} ${T.sensor.humidity_unit}`;
+    measuredAt.textContent = `${T.sensor.measured_at}: ${formatSensorTimestamp(sensor.measured_at)}`;
   }
 
-  temperature.textContent = `${T.sensor.temperature}: ${sensor.temperature_c ?? "–"} °C`;
-  humidity.textContent = `${T.sensor.humidity}: ${sensor.humidity_percent ?? "–"} %`;
-  measuredAt.textContent = `${T.sensor.measured_at}: ${formatSensorTimestamp(sensor.measured_at)}`;
+  const samples = (sensorHistory?.samples || []).filter(sample => sample.device_id === sensor.device_id);
+  const hash = samples.length ? `${samples.length}:${samples[samples.length - 1].ts}:${samples[samples.length - 1].temperature_c}:${samples[samples.length - 1].humidity_percent}` : "empty";
+  if (lastSensorHistoryHashes.get(sensor.device_id) !== hash) {
+    lastSensorHistoryHashes.set(sensor.device_id, hash);
+    renderTelemetryGraph(card.querySelector(".sensor-graph"), samples, [
+      { key: "temperature_c", color: "#f0ad4e", unit: T.sensor.temperature_unit, digits: 1 },
+      { key: "humidity_percent", color: "#5bc0de", unit: T.sensor.humidity_unit, digits: 0 }
+    ]);
+  }
 }
 
-function updateSensors(sensors) {
+function updateSensors(sensors, sensorHistory) {
   const sorted = sensors.slice().sort((a, b) => (a.name || "").localeCompare(b.name || ""));
   for (const sensor of sorted) {
     if (!sensor.device_id) continue;
@@ -458,7 +482,7 @@ function updateSensors(sensors) {
       DOM.sensorCards.set(sensor.device_id, card);
       DOM.grid.appendChild(card);
     }
-    updateSensorCard(card, sensor);
+    updateSensorCard(card, sensor, sensorHistory);
   }
 
   const ids = new Set(sorted.map(sensor => sensor.device_id));
@@ -603,8 +627,8 @@ function updateFarmStatus(printers, generatedAt) {
 // =======================
 // GRAPH (unchanged from your working version, only minimal responsive improvements)
 // =======================
-function renderPowerGraph(canvas, samples) {
-  if (!canvas || !samples || samples.length < 2) return;
+function renderTelemetryGraph(canvas, samples, series) {
+  if (!canvas) return;
 
   const wrap = canvas.closest(".power-graph-wrap");
   const cssW = (wrap?.clientWidth || canvas.clientWidth || 320);
@@ -623,36 +647,41 @@ function renderPowerGraph(canvas, samples) {
   const w = cssW;
   const h = cssH;
 
-  const points = samples
-    .filter(s => typeof s.ts === "number" && typeof s.kw === "number")
-    .map(s => ({ ts: s.ts, kw: s.kw }));
+  const points = samples.filter(s => typeof s.ts === "number");
+  const validValues = series.flatMap(item => points.map(point => point[item.key]).filter(value => typeof value === "number"));
+  if (points.length < 2 || validValues.length < 2) {
+    ctx.clearRect(0, 0, cssW, cssH);
+    return;
+  }
 
-  if (points.length < 2) return;
-
-  const padL = 42, padR = 8, padT = 8, padB = 18;
+  const padL = 42, padR = series.length > 1 ? 38 : 8, padT = 18, padB = 18;
   const gw = w - padL - padR;
   const gh = h - padT - padB;
 
   const minTs = Math.min(...points.map(p => p.ts));
   const maxTs = Math.max(...points.map(p => p.ts));
 
-  let minKw = Math.min(...points.map(p => p.kw));
-  let maxKw = Math.max(...points.map(p => p.kw));
-
-  if (Math.abs(maxKw - minKw) < 0.2) {
-    maxKw += 0.1;
-    minKw -= 0.1;
-  }
-
-  const yPad = (maxKw - minKw) * 0.1;
-  minKw = Math.max(0, minKw - yPad);
-  maxKw = maxKw + yPad;
-
   const spanTs = Math.max(1, maxTs - minTs);
-  const spanKw = Math.max(0.1, maxKw - minKw);
 
   const x = (ts) => padL + ((ts - minTs) / spanTs) * gw;
-  const y = (kw) => padT + (1 - ((kw - minKw) / spanKw)) * gh;
+  const scales = new Map(series.map(item => {
+    const values = points.map(point => point[item.key]).filter(value => typeof value === "number");
+    let min = Math.min(...values);
+    let max = Math.max(...values);
+    if (Math.abs(max - min) < (item.key === "kw" ? 0.2 : 1)) {
+      min -= item.key === "kw" ? 0.1 : 0.5;
+      max += item.key === "kw" ? 0.1 : 0.5;
+    }
+    const pad = (max - min) * 0.1;
+    min -= pad;
+    max += pad;
+    if (item.key === "kw") min = Math.max(0, min);
+    return [item.key, { min, max, span: Math.max(0.1, max - min) }];
+  }));
+  const y = (value, key) => {
+    const scale = scales.get(key);
+    return padT + (1 - ((value - scale.min) / scale.span)) * gh;
+  };
 
   // base draw
   function drawBase() {
@@ -670,14 +699,18 @@ function renderPowerGraph(canvas, samples) {
     for (let i = 0; i <= ticksY; i++) {
       const t = i / ticksY;
       const yy = padT + gh * t;
-      const value = (maxKw - spanKw * t);
-
       ctx.beginPath();
       ctx.moveTo(padL, yy);
       ctx.lineTo(padL + gw, yy);
       ctx.stroke();
-
-      ctx.fillText(value.toFixed(1), 4, yy + 4);
+      for (const item of series) {
+        const scale = scales.get(item.key);
+        const value = scale.max - scale.span * t;
+        ctx.fillStyle = item.color;
+        const label = value.toFixed(item.digits);
+        const labelX = item === series[0] ? 2 : padL + gw + 4;
+        ctx.fillText(label, labelX, yy + 4);
+      }
     }
 
     ctx.strokeStyle = "rgba(255,255,255,0.25)";
@@ -701,20 +734,38 @@ function renderPowerGraph(canvas, samples) {
     ctx.lineWidth = 2;
 
     ctx.beginPath();
-    points.forEach((p, i) => {
-      const xx = x(p.ts);
-      const yy = y(p.kw);
-      if (i === 0) ctx.moveTo(xx, yy);
-      else ctx.lineTo(xx, yy);
-    });
-    ctx.stroke();
+    for (const item of series) {
+      ctx.strokeStyle = item.color;
+      ctx.beginPath();
+      let started = false;
+      points.forEach(point => {
+        const value = point[item.key];
+        if (typeof value !== "number") return;
+        const xx = x(point.ts);
+        const yy = y(value, item.key);
+        if (!started) { ctx.moveTo(xx, yy); started = true; }
+        else ctx.lineTo(xx, yy);
+      });
+      ctx.stroke();
 
-    // last dot
-    const last = points[points.length - 1];
-    ctx.beginPath();
-    ctx.arc(x(last.ts), y(last.kw), 3, 0, Math.PI * 2);
-    ctx.fillStyle = "#ffffff";
-    ctx.fill();
+      const last = [...points].reverse().find(point => typeof point[item.key] === "number");
+      if (last) {
+        ctx.beginPath();
+        ctx.arc(x(last.ts), y(last[item.key]), 3, 0, Math.PI * 2);
+        ctx.fillStyle = item.color;
+        ctx.fill();
+      }
+    }
+    if (series.length > 1) {
+      let legendX = padL;
+      ctx.font = "10px Arial";
+      for (const item of series) {
+        ctx.fillStyle = item.color;
+        const label = item.key === "temperature_c" ? T.sensor.temperature : item.key === "humidity_percent" ? T.sensor.humidity : item.unit;
+        ctx.fillText(`${label} (${item.unit})`, legendX, 11);
+        legendX += ctx.measureText(`${label} (${item.unit})`).width + 14;
+      }
+    }
 
     ctx.restore();
   }
@@ -722,7 +773,7 @@ function renderPowerGraph(canvas, samples) {
   drawBase();
 
   // tooltip + crosshair
-  const tooltip = wrap?.querySelector(".power-graph-tooltip");
+  const tooltip = wrap?.querySelector(".telemetry-graph-tooltip");
   if (!wrap || !tooltip) return;
 
   function findNearestByX(mouseX) {
@@ -744,8 +795,6 @@ function renderPowerGraph(canvas, samples) {
   function drawOverlay(nearest) {
     drawBase();
     const nx = x(nearest.ts);
-    const ny = y(nearest.kw);
-
     ctx.save();
     ctx.strokeStyle = "rgba(255,255,255,0.65)";
     ctx.lineWidth = 1;
@@ -755,10 +804,13 @@ function renderPowerGraph(canvas, samples) {
     ctx.lineTo(nx, padT + gh);
     ctx.stroke();
 
-    ctx.beginPath();
-    ctx.arc(nx, ny, 4, 0, Math.PI * 2);
-    ctx.fillStyle = "#ffffff";
-    ctx.fill();
+    for (const item of series) {
+      if (typeof nearest[item.key] !== "number") continue;
+      ctx.beginPath();
+      ctx.arc(nx, y(nearest[item.key], item.key), 4, 0, Math.PI * 2);
+      ctx.fillStyle = item.color;
+      ctx.fill();
+    }
 
     ctx.restore();
   }
@@ -782,7 +834,10 @@ function renderPowerGraph(canvas, samples) {
     const d = new Date(nearest.ts * 1000);
     const time = d.toLocaleTimeString(locale(), { hour: "2-digit", minute: "2-digit" });
 
-    tooltip.innerHTML = `<strong>${nearest.kw.toFixed(2)} kW</strong><br>${time}`;
+    const values = series.map(item => typeof nearest[item.key] === "number"
+      ? `<span style="color:${item.color}">${nearest[item.key].toFixed(item.digits)} ${item.unit}</span>`
+      : null).filter(Boolean).join("<br>");
+    tooltip.innerHTML = `${values}<br>${time}`;
     tooltip.style.display = "block";
 
     const tx = Math.min(rect.width - 90, Math.max(6, mx + 10));
@@ -799,9 +854,9 @@ function renderPowerGraph(canvas, samples) {
 // =======================
 // DATA LOAD
 // =======================
-async function loadPowerHistory() {
+async function loadHistory(source) {
   try {
-    const r = await fetch(withoutCache(POWER_HISTORY_SOURCE), { cache: "no-store" });
+    const r = await fetch(withoutCache(source), { cache: "no-store" });
     if (!r.ok) return null;
     return await r.json();
   } catch {
@@ -816,12 +871,16 @@ async function load() {
 
     const data = await r.json();
 
-    // power history - can be slow or missing
-    const powerHistory = await loadPowerHistory();
+    const [powerHistory, sensorHistory] = await Promise.all([
+      loadHistory(POWER_HISTORY_SOURCE),
+      loadHistory(SENSOR_HISTORY_SOURCE)
+    ]);
+    const effectivePowerHistory = powerHistory || data.power_history || null;
+    const effectiveSensorHistory = sensorHistory || data.sensor_history || null;
 
     // update DOM without full rebuild
-    updatePowerCard(data.power, powerHistory);
-    updateSensors(data.sensors || []);
+    updatePowerCard(data.power, effectivePowerHistory);
+    updateSensors(data.sensors || [], effectiveSensorHistory);
     updatePrinters(data.printers || []);
     updateFarmStatus(data.printers || [], data.generated_at);
 

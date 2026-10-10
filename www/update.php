@@ -6,6 +6,7 @@ $OUTPUT_FILE = __DIR__ . '/status.json';
 
 // NEW: power history file
 $POWER_HISTORY_FILE = __DIR__ . '/power_history.json';
+$SENSOR_HISTORY_FILE = __DIR__ . '/sensor_history.json';
 
 // save power sample max 1x per 60 seconds
 $POWER_SAMPLE_INTERVAL = 60;
@@ -129,6 +130,52 @@ if ($power_kw !== null) {
         $tmp2 = $POWER_HISTORY_FILE . '.tmp';
         file_put_contents($tmp2, json_encode($history, JSON_PRETTY_PRINT));
         rename($tmp2, $POWER_HISTORY_FILE);
+    }
+}
+
+// ===== SENSOR HISTORY =====
+$sensors = $data['sensors'] ?? [];
+if (is_array($sensors)) {
+    $history = ["generated_at" => $now, "samples" => []];
+    if (file_exists($SENSOR_HISTORY_FILE)) {
+        $decoded = json_decode(file_get_contents($SENSOR_HISTORY_FILE), true);
+        if (json_last_error() === JSON_ERROR_NONE && is_array($decoded) && isset($decoded["samples"]) && is_array($decoded["samples"])) {
+            $history = $decoded;
+        }
+    }
+
+    $samples = $history["samples"];
+    $lastTs = null;
+    if (count($samples) > 0) {
+        $last = $samples[count($samples) - 1];
+        if (isset($last["ts"])) $lastTs = (int)$last["ts"];
+    }
+
+    if ($lastTs === null || ($now - $lastTs) >= 60) {
+        foreach ($sensors as $sensor) {
+            if (!is_array($sensor) || ($sensor['state'] ?? '') !== 'online') continue;
+            $temperature = $sensor['temperature_c'] ?? null;
+            $humidity = $sensor['humidity_percent'] ?? null;
+            if (!is_numeric($temperature) && !is_numeric($humidity)) continue;
+            $samples[] = [
+                "ts" => $now,
+                "device_id" => $sensor['device_id'] ?? null,
+                "name" => $sensor['name'] ?? null,
+                "temperature_c" => is_numeric($temperature) ? (float)$temperature : null,
+                "humidity_percent" => is_numeric($humidity) ? (float)$humidity : null,
+            ];
+        }
+    }
+
+    $minTs = $now - $POWER_HISTORY_SECONDS;
+    $samples = array_values(array_filter($samples, function($s) use ($minTs) {
+        return isset($s["ts"]) && (int)$s["ts"] >= $minTs;
+    }));
+    $history["generated_at"] = $now;
+    $history["samples"] = $samples;
+    $tmp = $SENSOR_HISTORY_FILE . '.tmp';
+    if (file_put_contents($tmp, json_encode($history, JSON_PRETTY_PRINT)) !== false) {
+        rename($tmp, $SENSOR_HISTORY_FILE);
     }
 }
 
