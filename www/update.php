@@ -10,6 +10,7 @@ $SENSOR_HISTORY_FILE = __DIR__ . '/sensor_history.json';
 
 // save power sample max 1x per 60 seconds
 $POWER_SAMPLE_INTERVAL = 60;
+$SENSOR_SAMPLE_INTERVAL = 10 * 60;
 
 // keep last 12 hours
 $POWER_HISTORY_SECONDS = 12 * 3600;
@@ -151,7 +152,7 @@ if (is_array($sensors)) {
         if (isset($last["ts"])) $lastTs = (int)$last["ts"];
     }
 
-    if ($lastTs === null || ($now - $lastTs) >= 60) {
+    if ($lastTs === null || ($now - $lastTs) >= $SENSOR_SAMPLE_INTERVAL) {
         foreach ($sensors as $sensor) {
             if (!is_array($sensor) || ($sensor['state'] ?? '') !== 'online') continue;
             $temperature = $sensor['temperature_c'] ?? null;

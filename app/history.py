@@ -10,7 +10,7 @@ from typing import Any
 
 HISTORY_DIR = Path(os.environ.get("WALLDISPLAY_HISTORY_DIR", Path(__file__).parent / "data" / "history"))
 POWER_SAMPLE_INTERVAL = 60
-SENSOR_SAMPLE_INTERVAL = 60
+SENSOR_SAMPLE_INTERVAL = 10 * 60
 HISTORY_SECONDS = 12 * 60 * 60
 
 
