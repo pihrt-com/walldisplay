@@ -705,6 +705,7 @@ function renderTelemetryGraph(canvas, samples, series) {
       ctx.stroke();
       for (const item of series) {
         const scale = scales.get(item.key);
+        if (!scale) continue;
         const value = scale.max - scale.span * t;
         ctx.fillStyle = item.color;
         const label = value.toFixed(item.digits);
@@ -736,6 +737,7 @@ function renderTelemetryGraph(canvas, samples, series) {
     ctx.beginPath();
     for (const item of series) {
       ctx.strokeStyle = item.color;
+      if (!scales.has(item.key)) continue;
       ctx.beginPath();
       let started = false;
       points.forEach(point => {
