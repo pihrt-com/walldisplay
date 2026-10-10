@@ -351,6 +351,18 @@ let lastPowerHistoryHash = null;
 const lastSensorHistoryHashes = new Map();
 let lastKnownStatus = null;
 let loadInProgress = false;
+let historyLoadStarted = false;
+let lastPowerHistoryGeneratedAt = null;
+let lastSensorHistoryGeneratedAt = null;
+const HISTORY_REFRESH_MS = 60_000;
+
+function graphDataHash(samples, keys) {
+  if (!Array.isArray(samples)) return "empty";
+  return JSON.stringify(samples.map(sample => [
+    sample?.ts,
+    ...keys.map(key => sample?.[key] ?? null)
+  ]));
+}
 
 // =======================
 // POWER CARD CREATE/UPDATE
@@ -403,8 +415,8 @@ function updatePowerCard(power, powerHistory) {
     `${T.energy.consumption}: <strong>${power.energy_kwh} ${T.energy.unit_kwh}</strong>`;
 
   // redraw graph only when history changed
-  const samples = powerHistory?.samples || [];
-  const hash = samples.length ? `${samples.length}:${samples[samples.length - 1].ts}:${samples[samples.length - 1].kw}` : "empty";
+  const samples = Array.isArray(powerHistory?.samples) ? powerHistory.samples : [];
+  const hash = graphDataHash(samples, ["kw"]);
 
   if (hash !== lastPowerHistoryHash) {
     lastPowerHistoryHash = hash;
@@ -467,8 +479,8 @@ function updateSensorCard(card, sensor, sensorHistory) {
     measuredAt.textContent = `${T.sensor.measured_at}: ${formatSensorTimestamp(sensor.measured_at)}`;
   }
 
-  const samples = (sensorHistory?.samples || []).filter(sample => sample.device_id === sensor.device_id);
-  const hash = samples.length ? `${samples.length}:${samples[samples.length - 1].ts}:${samples[samples.length - 1].temperature_c}:${samples[samples.length - 1].humidity_percent}` : "empty";
+  const samples = (Array.isArray(sensorHistory?.samples) ? sensorHistory.samples : []).filter(sample => sample.device_id === sensor.device_id);
+  const hash = graphDataHash(samples, ["temperature_c", "humidity_percent"]);
   if (lastSensorHistoryHashes.get(sensor.device_id) !== hash) {
     lastSensorHistoryHashes.set(sensor.device_id, hash);
     try {
@@ -645,14 +657,25 @@ function renderTelemetryGraph(canvas, samples, series) {
   const cssH = 90;
 
   const dpr = window.devicePixelRatio || 1;
-  canvas.width = Math.floor(cssW * dpr);
-  canvas.height = Math.floor(cssH * dpr);
+  const pixelWidth = Math.floor(cssW * dpr);
+  const pixelHeight = Math.floor(cssH * dpr);
+  if (canvas.width !== pixelWidth) canvas.width = pixelWidth;
+  if (canvas.height !== pixelHeight) canvas.height = pixelHeight;
 
   canvas.style.width = cssW + "px";
   canvas.style.height = cssH + "px";
 
-  const ctx = canvas.getContext("2d");
+  const buffer = document.createElement("canvas");
+  buffer.width = pixelWidth;
+  buffer.height = pixelHeight;
+  const ctx = buffer.getContext("2d");
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const visibleContext = canvas.getContext("2d");
+
+  function present() {
+    visibleContext.clearRect(0, 0, cssW, cssH);
+    visibleContext.drawImage(buffer, 0, 0, cssW, cssH);
+  }
 
   const w = cssW;
   const h = cssH;
@@ -768,7 +791,7 @@ function renderTelemetryGraph(canvas, samples, series) {
       const last = [...points].reverse().find(point => typeof point[item.key] === "number");
       if (last) {
         ctx.beginPath();
-        ctx.arc(x(last.ts), y(last[item.key]), 3, 0, Math.PI * 2);
+        ctx.arc(x(last.ts), y(last[item.key], item.key), 3, 0, Math.PI * 2);
         ctx.fillStyle = item.color;
         ctx.fill();
       }
@@ -785,6 +808,7 @@ function renderTelemetryGraph(canvas, samples, series) {
     }
 
     ctx.restore();
+    present();
   }
 
   drawBase();
@@ -830,42 +854,47 @@ function renderTelemetryGraph(canvas, samples, series) {
     }
 
     ctx.restore();
+    present();
   }
 
-  // bind only once per canvas
-  if (canvas._powerGraphBound) {
-    // redraw base only (not bind again)
-    return;
+  const graphState = { findNearestByX, drawBase, drawOverlay, points, series, x, scales, tooltip };
+  canvas._graphState = graphState;
+
+  // Bind once; handlers always use the newest graph data and offscreen buffer.
+  if (!canvas._powerGraphBound) {
+    canvas._powerGraphBound = true;
+    canvas.addEventListener("mousemove", (ev) => {
+      const state = canvas._graphState;
+      if (!state) return;
+      const rect = canvas.getBoundingClientRect();
+      const mx = ev.clientX - rect.left;
+
+      const nearest = state.findNearestByX(mx);
+      if (!nearest) return;
+
+      state.drawOverlay(nearest);
+
+      const d = new Date(nearest.ts * 1000);
+      const time = d.toLocaleTimeString(locale(), { hour: "2-digit", minute: "2-digit" });
+
+      const values = state.series.map(item => state.scales.has(item.key) && typeof nearest[item.key] === "number" && Number.isFinite(nearest[item.key])
+        ? `<span style="color:${item.color}">${nearest[item.key].toFixed(item.digits)} ${item.unit}</span>`
+        : null).filter(Boolean).join("<br>");
+      state.tooltip.innerHTML = `${values}<br>${time}`;
+      state.tooltip.style.display = "block";
+
+      const tx = Math.min(rect.width - 90, Math.max(6, mx + 10));
+      state.tooltip.style.left = `${tx}px`;
+      state.tooltip.style.top = `6px`;
+    });
+
+    canvas.addEventListener("mouseleave", () => {
+      const state = canvas._graphState;
+      if (!state) return;
+      state.tooltip.style.display = "none";
+      state.drawBase();
+    });
   }
-  canvas._powerGraphBound = true;
-
-  canvas.addEventListener("mousemove", (ev) => {
-    const rect = canvas.getBoundingClientRect();
-    const mx = ev.clientX - rect.left;
-
-    const nearest = findNearestByX(mx);
-    if (!nearest) return;
-
-    drawOverlay(nearest);
-
-    const d = new Date(nearest.ts * 1000);
-    const time = d.toLocaleTimeString(locale(), { hour: "2-digit", minute: "2-digit" });
-
-    const values = series.map(item => scales.has(item.key) && typeof nearest[item.key] === "number" && Number.isFinite(nearest[item.key])
-      ? `<span style="color:${item.color}">${nearest[item.key].toFixed(item.digits)} ${item.unit}</span>`
-      : null).filter(Boolean).join("<br>");
-    tooltip.innerHTML = `${values}<br>${time}`;
-    tooltip.style.display = "block";
-
-    const tx = Math.min(rect.width - 90, Math.max(6, mx + 10));
-    tooltip.style.left = `${tx}px`;
-    tooltip.style.top = `6px`;
-  });
-
-  canvas.addEventListener("mouseleave", () => {
-    tooltip.style.display = "none";
-    drawBase();
-  });
 }
 
 // =======================
@@ -879,6 +908,27 @@ async function loadHistory(source) {
   } catch {
     return null;
   }
+}
+
+function refreshHistories(data) {
+  if (historyLoadStarted) return;
+  historyLoadStarted = true;
+
+  Promise.all([
+    loadHistory(POWER_HISTORY_SOURCE),
+    loadHistory(SENSOR_HISTORY_SOURCE)
+  ]).then(([powerHistory, sensorHistory]) => {
+    if (powerHistory) {
+      lastPowerHistoryGeneratedAt = powerHistory.generated_at ?? lastPowerHistoryGeneratedAt;
+      updatePowerCard(data.power, powerHistory);
+    }
+    if (sensorHistory) {
+      lastSensorHistoryGeneratedAt = sensorHistory.generated_at ?? lastSensorHistoryGeneratedAt;
+      updateSensors(data.sensors || [], sensorHistory);
+    }
+  }).catch(error => console.warn("HISTORY LOAD ERROR", error)).finally(() => {
+    historyLoadStarted = false;
+  });
 }
 
 async function load() {
@@ -895,20 +945,20 @@ async function load() {
     const effectiveSensorHistory = data.sensor_history || null;
 
     // Render live status immediately; history endpoints must not delay the cards.
-    updatePowerCard(data.power, effectivePowerHistory);
-    updateSensors(data.sensors || [], effectiveSensorHistory);
+    if (effectivePowerHistory) {
+      lastPowerHistoryGeneratedAt = effectivePowerHistory.generated_at ?? lastPowerHistoryGeneratedAt;
+      updatePowerCard(data.power, effectivePowerHistory);
+    }
+    if (effectiveSensorHistory) {
+      lastSensorHistoryGeneratedAt = effectiveSensorHistory.generated_at ?? lastSensorHistoryGeneratedAt;
+      updateSensors(data.sensors || [], effectiveSensorHistory);
+    }
     updatePrinters(data.printers || []);
     updateFarmStatus(data.printers || [], data.generated_at);
 
     updateDateTime();
 
-    Promise.all([
-      loadHistory(POWER_HISTORY_SOURCE),
-      loadHistory(SENSOR_HISTORY_SOURCE)
-    ]).then(([loadedPowerHistory, loadedSensorHistory]) => {
-      if (loadedPowerHistory) updatePowerCard(data.power, loadedPowerHistory);
-      if (loadedSensorHistory) updateSensors(data.sensors || [], loadedSensorHistory);
-    }).catch(error => console.warn("HISTORY LOAD ERROR", error));
+    refreshHistories(data);
   } catch (e) {
     console.error("DATA LOAD ERROR", e);
 
@@ -931,4 +981,7 @@ async function load() {
 
 load();
 setInterval(load, REFRESH_MS);
+setInterval(() => {
+  if (lastKnownStatus) refreshHistories(lastKnownStatus);
+}, HISTORY_REFRESH_MS);
 setInterval(updateDateTime, 1000);
