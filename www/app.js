@@ -654,17 +654,14 @@ function renderTelemetryGraph(canvas, samples, series) {
 
   canvas._renderGraph = () => renderTelemetryGraph(canvas, samples, series);
   const wrap = canvas.closest(".power-graph-wrap");
-  const cssW = (wrap?.clientWidth || canvas.clientWidth || 320);
-  const cssH = window.matchMedia("(max-width: 768px)").matches ? 150 : 90;
+  const cssW = Math.round(wrap?.getBoundingClientRect().width || canvas.getBoundingClientRect().width || 320);
+  const cssH = Math.round(canvas.getBoundingClientRect().height || 90);
 
   const dpr = window.devicePixelRatio || 1;
   const pixelWidth = Math.floor(cssW * dpr);
   const pixelHeight = Math.floor(cssH * dpr);
   if (canvas.width !== pixelWidth) canvas.width = pixelWidth;
   if (canvas.height !== pixelHeight) canvas.height = pixelHeight;
-
-  canvas.style.width = cssW + "px";
-  canvas.style.height = cssH + "px";
 
   const buffer = document.createElement("canvas");
   buffer.width = pixelWidth;
@@ -988,9 +985,18 @@ setInterval(() => {
 setInterval(updateDateTime, 1000);
 
 let graphResizeTimer = null;
-window.addEventListener("resize", () => {
+function redrawTelemetryGraphs() {
   clearTimeout(graphResizeTimer);
   graphResizeTimer = setTimeout(() => {
     document.querySelectorAll(".telemetry-graph").forEach(canvas => canvas._renderGraph?.());
   }, 150);
-});
+}
+
+window.addEventListener("resize", redrawTelemetryGraphs);
+
+if (typeof ResizeObserver === "function") {
+  const graphResizeObserver = new ResizeObserver(entries => {
+    if (entries.some(entry => entry.contentRect.width > 0)) redrawTelemetryGraphs();
+  });
+  graphResizeObserver.observe(DOM.grid);
+}

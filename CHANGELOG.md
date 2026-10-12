@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Bottom-align power and temperature graphs inside their telemetry cards, keep kiosk graph labels within the card, and resize canvases to the real container width with a larger mobile height.
 - Keep local status rendering responsive by refreshing Shelly telemetry and exporting remote status in background tasks; preserve the last known sensor readings during transient Cloud failures.
 - Load history graphs independently from live status, guard graph rendering against missing or invalid series, and prevent overlapping status refreshes.
 - Keep graph canvases unchanged when history samples have not changed and poll remote histories once per minute.
