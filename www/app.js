@@ -85,6 +85,7 @@ const I18N = {
       walldisplay_service: "WallDisplay",
       cpu_temperature: "CPU",
       memory: "RAM",
+      uptime: "Doba běhu",
       pi_connect_service: "Raspberry Pi Connect",
       running: "Běží",
       stopped: "Neběží",
@@ -151,6 +152,7 @@ const I18N = {
       walldisplay_service: "WallDisplay",
       cpu_temperature: "CPU",
       memory: "RAM",
+      uptime: "Uptime",
       pi_connect_service: "Raspberry Pi Connect",
       running: "Running",
       stopped: "Stopped",
@@ -217,6 +219,7 @@ const I18N = {
       walldisplay_service: "WallDisplay",
       cpu_temperature: "CPU",
       memory: "RAM",
+      uptime: "Laufzeit",
       pi_connect_service: "Raspberry Pi Connect",
       running: "Aktiv",
       stopped: "Inaktiv",
@@ -570,6 +573,29 @@ function serviceLabel(state) {
   return T.system.stopped;
 }
 
+function formatUptime(seconds) {
+  if (typeof seconds !== "number" || seconds < 0) return "–";
+
+  const units = [
+    { key: "year", value: 365 * 24 * 3600 },
+    { key: "month", value: 30 * 24 * 3600 },
+    { key: "day", value: 24 * 3600 },
+    { key: "hour", value: 3600 },
+    { key: "minute", value: 60 }
+  ];
+
+  let remaining = Math.floor(seconds);
+  const parts = [];
+  for (const unit of units) {
+    const amount = Math.floor(remaining / unit.value);
+    if (amount > 0) {
+      parts.push(`${amount} ${plural(amount, T.time[unit.key])}`);
+      remaining -= amount * unit.value;
+    }
+  }
+  return parts.length ? parts.join(" ") : `0 ${plural(0, T.time.minute)}`;
+}
+
 function createSystemCard() {
   const card = document.createElement("div");
   card.className = "card system";
@@ -579,6 +605,7 @@ function createSystemCard() {
     <div class="system-row system-python"></div>
     <div class="system-row system-cpu"></div>
     <div class="system-row system-memory"></div>
+    <div class="system-row system-uptime"></div>
     <div class="system-row system-walldisplay"></div>
     <div class="system-row system-connect"></div>
   `;
@@ -607,6 +634,7 @@ function updateSystemCard(system) {
   card.querySelector(".system-python").textContent = `${T.system.python}: ${system.python_version || "–"}`;
   card.querySelector(".system-cpu").textContent = `${T.system.cpu_temperature}: ${cpuTemperature}`;
   card.querySelector(".system-memory").textContent = `${T.system.memory}: ${memoryValue}`;
+  card.querySelector(".system-uptime").textContent = `${T.system.uptime}: ${formatUptime(system.uptime_seconds)}`;
   card.querySelector(".system-walldisplay").innerHTML = `${T.system.walldisplay_service}: <strong class="system-service ${system.walldisplay_service === "active" ? "active" : ""}">${serviceLabel(system.walldisplay_service)}</strong>`;
   card.querySelector(".system-connect").innerHTML = `${T.system.pi_connect_service}: <strong class="system-service ${system.pi_connect_service === "active" ? "active" : ""}">${serviceLabel(system.pi_connect_service)}</strong>`;
 }

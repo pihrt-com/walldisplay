@@ -47,9 +47,11 @@ The power card and each temperature/humidity card include a 12-hour history grap
 
 Every telemetry graph can be clicked to expand it over the entire display; click it again or press Escape to return to the dashboard. This works for the power graph and every temperature/humidity graph.
 
-The Raspberry Pi card shows the installed Linux release, the active Python version, CPU temperature, actual RAM use, and the systemd status of `walldisplay.service` and `rpi-connect.service`. Raspberry Pi OS does not normally expose an independent RAM temperature sensor, so the card deliberately reports RAM usage rather than a fabricated temperature. The same optional `system` object is exported to the remote JSON mirror.
+The Raspberry Pi card shows the installed Linux release, the active Python version, CPU temperature, actual RAM use, Linux uptime since the last restart in years/months/days/hours/minutes, the state of either compatible backend unit (`wallboard.service` or `walldisplay.service`), and Raspberry Pi Connect's own `rpi-connect status` result. Raspberry Pi OS does not normally expose an independent RAM temperature sensor, so the card deliberately reports RAM usage rather than a fabricated temperature. The same optional `system` object is exported to the remote JSON mirror.
 
 ## Changes
+2026-10-13 — `walldisplay`: Recognized deployed `wallboard.service` installations as the WallDisplay backend, verified Raspberry Pi Connect through `rpi-connect status`, and added Linux uptime since the last restart in years/months/days/hours/minutes.
+
 2026-10-13 — `walldisplay`: Fixed the service-status check for the WallDisplay unit's restricted `PATH` by invoking `/usr/bin/systemctl` explicitly, so an active WallDisplay or Raspberry Pi Connect service is not falsely shown as unavailable.
 
 2026-10-13 — `walldisplay`: Added a Raspberry Pi diagnostics card with Linux/Python versions, CPU temperature, actual RAM use, WallDisplay service state, and Raspberry Pi Connect service state; exported the same data to the remote mirror and added click-to-fullscreen behavior for all telemetry graphs.

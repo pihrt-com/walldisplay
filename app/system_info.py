@@ -10,10 +10,12 @@ from pathlib import Path
 
 OS_RELEASE_PATH = Path("/etc/os-release")
 MEMINFO_PATH = Path("/proc/meminfo")
+UPTIME_PATH = Path("/proc/uptime")
 THERMAL_ROOT = Path("/sys/class/thermal")
-WALLDISPLAY_SERVICE = "walldisplay.service"
+WALLDISPLAY_SERVICES = ("wallboard.service", "walldisplay.service")
 PI_CONNECT_SERVICE = "rpi-connect.service"
 SYSTEMCTL_PATH = "/usr/bin/systemctl"
+PI_CONNECT_PATH = "/usr/bin/rpi-connect"
 
 
 def _read_os_release() -> str:
@@ -73,6 +75,14 @@ def _read_memory() -> dict | None:
     }
 
 
+def _read_uptime_seconds() -> int | None:
+    """Read Linux uptime from /proc/uptime as whole seconds."""
+    try:
+        return int(float(UPTIME_PATH.read_text(encoding="utf-8").split()[0]))
+    except (IndexError, OSError, ValueError):
+        return None
+
+
 def _service_state(service_name: str) -> str:
     """Return systemd's state without allowing a missing unit to break the API."""
     try:
@@ -90,6 +100,32 @@ def _service_state(service_name: str) -> str:
     return state or "unavailable"
 
 
+def _first_active_service_state(service_names: tuple[str, ...]) -> str:
+    """Return active when any compatible service unit is active."""
+    states = [_service_state(service_name) for service_name in service_names]
+    if "active" in states:
+        return "active"
+    return next((state for state in states if state != "unavailable"), "unavailable")
+
+
+def _pi_connect_state() -> str:
+    """Query Raspberry Pi Connect directly because its systemd unit may be user-scoped."""
+    try:
+        result = subprocess.run(
+            [PI_CONNECT_PATH, "status"],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=1,
+        )
+    except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
+        return _service_state(PI_CONNECT_SERVICE)
+
+    if result.returncode == 0 and "signed in: yes" in result.stdout.lower():
+        return "active"
+    return _service_state(PI_CONNECT_SERVICE)
+
+
 def collect_system_status() -> dict:
     """Return optional system diagnostics for local and remote dashboard clients."""
     return {
@@ -97,6 +133,7 @@ def collect_system_status() -> dict:
         "python_version": platform.python_version() or sys.version.split()[0],
         "cpu_temperature_c": _read_cpu_temperature(),
         "memory": _read_memory(),
-        "walldisplay_service": _service_state(WALLDISPLAY_SERVICE),
-        "pi_connect_service": _service_state(PI_CONNECT_SERVICE),
+        "uptime_seconds": _read_uptime_seconds(),
+        "walldisplay_service": _first_active_service_state(WALLDISPLAY_SERVICES),
+        "pi_connect_service": _pi_connect_state(),
     }

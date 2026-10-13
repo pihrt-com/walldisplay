@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Detect either deployed backend unit name (`wallboard.service` or `walldisplay.service`), verify Raspberry Pi Connect with its `rpi-connect status` command, and display Linux uptime since the last restart in years/months/days/hours/minutes.
 - Invoke `/usr/bin/systemctl` explicitly when checking service states so the WallDisplay unit's virtualenv-only `PATH` cannot report false unavailability.
 - Add a Raspberry Pi diagnostics card with Linux/Python versions, CPU temperature, actual RAM use, WallDisplay and Raspberry Pi Connect service states, and remote-mirror export.
 - Allow every power and temperature/humidity graph to toggle a full-screen view by click, keyboard activation, or Escape.
