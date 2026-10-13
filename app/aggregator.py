@@ -14,6 +14,7 @@ from app.devices.shelly_4pm import get_power_status
 from app.devices.shelly_cloud import get_sensor_statuses
 from app.remote_export import send_remote_status
 from app.history import record_power, record_sensors
+from app.system_info import collect_system_status
 
 import time
 import threading
@@ -111,7 +112,8 @@ def collect():
 
     power_history = record_power(power)
     sensor_history = record_sensors(sensors)
-    _run_background_once("remote-export", lambda: send_remote_status(printers, power, sensors))
+    system = collect_system_status()
+    _run_background_once("remote-export", lambda: send_remote_status(printers, power, sensors, system))
 
     return {
         "generated_at": int(time.time()),
@@ -120,4 +122,5 @@ def collect():
         "sensors": sensors,
         "power_history": power_history,
         "sensor_history": sensor_history,
+        "system": system,
     }

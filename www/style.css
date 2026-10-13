@@ -179,6 +179,26 @@ html, body {
   padding-bottom: 12px;
 }
 
+/* ===== RASPBERRY PI SYSTEM CARD ===== */
+.card.system {
+  border-color: #9575cd;
+  min-height: 250px;
+}
+
+.system-row {
+  color: #ddd;
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+
+.system-service {
+  color: #f0ad4e;
+}
+
+.system-service.active {
+  color: #5cb85c;
+}
+
 .card.power.high {
   border-color: #f0ad4e;
 }
@@ -239,6 +259,7 @@ html, body {
   min-width: 0;
   margin-top: auto;
   padding-top: 8px;
+  cursor: zoom-in;
 }
 
 .power-graph {
@@ -261,6 +282,23 @@ html, body {
   white-space: nowrap;
   display: none;
   z-index: 5;
+}
+
+.power-graph-wrap.graph-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: stretch;
+  margin: 0;
+  padding: 28px;
+  background: #111;
+  cursor: zoom-out;
+}
+
+.power-graph-wrap.graph-fullscreen .power-graph {
+  height: 100%;
+  border: 1px solid rgba(255,255,255,0.25);
 }
 
 /* ===== STATUS BAR STATES ===== */

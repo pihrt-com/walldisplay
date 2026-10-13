@@ -77,6 +77,18 @@ const I18N = {
       unavailable: "Data ze Shelly nejsou k dispozici",
       temperature_unit: "°C",
       humidity_unit: "%"
+    },
+    system: {
+      title: "Raspberry Pi",
+      linux: "Linux",
+      python: "Python",
+      walldisplay_service: "WallDisplay",
+      cpu_temperature: "CPU",
+      memory: "RAM",
+      pi_connect_service: "Raspberry Pi Connect",
+      running: "Běží",
+      stopped: "Neběží",
+      unavailable: "Nedostupná"
     }
   },
 
@@ -131,6 +143,18 @@ const I18N = {
       unavailable: "Shelly data is unavailable",
       temperature_unit: "°C",
       humidity_unit: "%"
+    },
+    system: {
+      title: "Raspberry Pi",
+      linux: "Linux",
+      python: "Python",
+      walldisplay_service: "WallDisplay",
+      cpu_temperature: "CPU",
+      memory: "RAM",
+      pi_connect_service: "Raspberry Pi Connect",
+      running: "Running",
+      stopped: "Stopped",
+      unavailable: "Unavailable"
     }
   },
 
@@ -185,6 +209,18 @@ const I18N = {
       unavailable: "Shelly-Daten nicht verfügbar",
       temperature_unit: "°C",
       humidity_unit: "%"
+    },
+    system: {
+      title: "Raspberry Pi",
+      linux: "Linux",
+      python: "Python",
+      walldisplay_service: "WallDisplay",
+      cpu_temperature: "CPU",
+      memory: "RAM",
+      pi_connect_service: "Raspberry Pi Connect",
+      running: "Aktiv",
+      stopped: "Inaktiv",
+      unavailable: "Nicht verfügbar"
     }
   }
 };
@@ -343,6 +379,7 @@ function updateStatusBar(printers) {
 const DOM = {
   grid: document.getElementById("grid"),
   powerCard: null,
+  systemCard: null,
   printerCards: new Map(), // key=name -> element
   sensorCards: new Map(), // key=device_id -> element
 };
@@ -379,11 +416,13 @@ function createPowerCard() {
     <div class="metric power-voltage"></div>
     <div class="metric power-consumption"></div>
 
-    <div class="power-graph-wrap">
+    <div class="power-graph-wrap" tabindex="0" role="button">
       <canvas class="power-graph telemetry-graph"></canvas>
       <div class="power-graph-tooltip telemetry-graph-tooltip"></div>
     </div>
   `;
+
+  setupGraphFullscreen(card.querySelector(".power-graph-wrap"));
 
   return card;
 }
@@ -441,11 +480,12 @@ function createSensorCard(sensor) {
     <div class="sensor-temperature"></div>
     <div class="sensor-humidity"></div>
     <div class="sensor-measured-at"></div>
-    <div class="power-graph-wrap sensor-graph-wrap">
+    <div class="power-graph-wrap sensor-graph-wrap" tabindex="0" role="button">
       <canvas class="power-graph telemetry-graph sensor-graph"></canvas>
       <div class="power-graph-tooltip telemetry-graph-tooltip"></div>
     </div>
   `;
+  setupGraphFullscreen(card.querySelector(".power-graph-wrap"));
   return card;
 }
 
@@ -514,6 +554,61 @@ function updateSensors(sensors, sensorHistory) {
       DOM.sensorCards.delete(id);
     }
   }
+}
+
+// =======================
+// RASPBERRY PI SYSTEM CARD
+// =======================
+function formatBytes(bytes) {
+  if (typeof bytes !== "number" || !Number.isFinite(bytes)) return "–";
+  return `${(bytes / (1024 ** 3)).toFixed(1)} GiB`;
+}
+
+function serviceLabel(state) {
+  if (state === "active") return T.system.running;
+  if (state === "unavailable" || !state) return T.system.unavailable;
+  return T.system.stopped;
+}
+
+function createSystemCard() {
+  const card = document.createElement("div");
+  card.className = "card system";
+  card.innerHTML = `
+    <h2 class="system-title"></h2>
+    <div class="system-row system-linux"></div>
+    <div class="system-row system-python"></div>
+    <div class="system-row system-cpu"></div>
+    <div class="system-row system-memory"></div>
+    <div class="system-row system-walldisplay"></div>
+    <div class="system-row system-connect"></div>
+  `;
+  return card;
+}
+
+function updateSystemCard(system) {
+  if (!system || typeof system !== "object") return;
+
+  if (!DOM.systemCard) {
+    DOM.systemCard = createSystemCard();
+    DOM.grid.appendChild(DOM.systemCard);
+  }
+
+  const card = DOM.systemCard;
+  const memory = system.memory || {};
+  const cpuTemperature = typeof system.cpu_temperature_c === "number"
+    ? `${system.cpu_temperature_c.toFixed(1)} °C`
+    : "–";
+  const memoryValue = typeof memory.percent === "number"
+    ? `${formatBytes(memory.used_bytes)} / ${formatBytes(memory.total_bytes)} (${memory.percent.toFixed(1)} %)`
+    : "–";
+
+  card.querySelector(".system-title").textContent = T.system.title;
+  card.querySelector(".system-linux").textContent = `${T.system.linux}: ${system.linux_version || "–"}`;
+  card.querySelector(".system-python").textContent = `${T.system.python}: ${system.python_version || "–"}`;
+  card.querySelector(".system-cpu").textContent = `${T.system.cpu_temperature}: ${cpuTemperature}`;
+  card.querySelector(".system-memory").textContent = `${T.system.memory}: ${memoryValue}`;
+  card.querySelector(".system-walldisplay").innerHTML = `${T.system.walldisplay_service}: <strong class="system-service ${system.walldisplay_service === "active" ? "active" : ""}">${serviceLabel(system.walldisplay_service)}</strong>`;
+  card.querySelector(".system-connect").innerHTML = `${T.system.pi_connect_service}: <strong class="system-service ${system.pi_connect_service === "active" ? "active" : ""}">${serviceLabel(system.pi_connect_service)}</strong>`;
 }
 
 // =======================
@@ -896,6 +991,42 @@ function renderTelemetryGraph(canvas, samples, series) {
 }
 
 // =======================
+// GRAPH FULLSCREEN
+// =======================
+function setupGraphFullscreen(wrap) {
+  if (!wrap || wrap.dataset.fullscreenBound) return;
+  wrap.dataset.fullscreenBound = "true";
+  wrap.title = "Kliknutím zvětšíte graf";
+
+  const toggle = () => {
+    const becameFullscreen = !wrap.classList.contains("graph-fullscreen");
+    document.querySelectorAll(".graph-fullscreen").forEach(other => {
+      if (other !== wrap) other.classList.remove("graph-fullscreen");
+    });
+    wrap.classList.toggle("graph-fullscreen", becameFullscreen);
+    wrap.setAttribute("aria-pressed", String(becameFullscreen));
+    redrawTelemetryGraphs();
+  };
+
+  wrap.addEventListener("click", toggle);
+  wrap.addEventListener("keydown", event => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      toggle();
+    }
+  });
+}
+
+window.addEventListener("keydown", event => {
+  if (event.key !== "Escape") return;
+  const fullscreenGraph = document.querySelector(".graph-fullscreen");
+  if (!fullscreenGraph) return;
+  fullscreenGraph.classList.remove("graph-fullscreen");
+  fullscreenGraph.setAttribute("aria-pressed", "false");
+  redrawTelemetryGraphs();
+});
+
+// =======================
 // DATA LOAD
 // =======================
 async function loadHistory(source) {
@@ -952,6 +1083,7 @@ async function load() {
       updateSensors(data.sensors || [], effectiveSensorHistory);
     }
     updatePrinters(data.printers || []);
+    updateSystemCard(data.system);
     updateFarmStatus(data.printers || [], data.generated_at);
 
     updateDateTime();
@@ -967,6 +1099,7 @@ async function load() {
       updatePowerCard(lastKnownStatus.power, lastKnownStatus.power_history);
       updateSensors(lastKnownStatus.sensors || [], lastKnownStatus.sensor_history);
       updatePrinters(lastKnownStatus.printers || []);
+      updateSystemCard(lastKnownStatus.system);
       updateFarmStatus(lastKnownStatus.printers || [], lastKnownStatus.generated_at);
     } else if (farmStatusEl) {
       farmStatusEl.textContent = `❌ ${T.farm.data_unavailable}`;

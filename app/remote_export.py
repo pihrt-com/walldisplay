@@ -2,7 +2,7 @@ import time
 import requests
 from app.config import REMOTE_EXPORT
 
-def send_remote_status(printers, power=None, sensors=None):
+def send_remote_status(printers, power=None, sensors=None, system=None):
     if not REMOTE_EXPORT.get("enabled"):
         return
 
@@ -11,6 +11,7 @@ def send_remote_status(printers, power=None, sensors=None):
         "printers": printers,
         "power": power,
         "sensors": sensors or [],
+        "system": system,
     }
 
     try:

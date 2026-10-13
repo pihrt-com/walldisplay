@@ -45,7 +45,13 @@ Set `SHELLY_CLOUD["enabled"]` to `True` in `app/config.py`, then enter the Shell
 
 The power card and each temperature/humidity card include a 12-hour history graph. The Raspberry Pi stores samples locally under `app/data/history/` by default and serves them through `/api/power_history` and `/api/sensor_history`; set `WALLDISPLAY_HISTORY_DIR` to a persistent writable directory if the application code directory is read-only or replaced during updates. Local power samples are saved at most once per minute and sensor samples once per 10 minutes. The remote PHP receiver builds its own history from incoming live measurements and stores `power_history.json` and `sensor_history.json` beside `status.json`; remote power samples are limited to one per minute and sensor samples to one per 10 minutes. The browser checks remote history once per minute and redraws a graph only when its plotted sample values change. Graphs are bottom-aligned inside equal-height telemetry cards, follow their actual container width, and increase to 180 pixels high on screens narrower than 768 pixels so axes and legends remain readable.
 
+Every telemetry graph can be clicked to expand it over the entire display; click it again or press Escape to return to the dashboard. This works for the power graph and every temperature/humidity graph.
+
+The Raspberry Pi card shows the installed Linux release, the active Python version, CPU temperature, actual RAM use, and the systemd status of `walldisplay.service` and `rpi-connect.service`. Raspberry Pi OS does not normally expose an independent RAM temperature sensor, so the card deliberately reports RAM usage rather than a fabricated temperature. The same optional `system` object is exported to the remote JSON mirror.
+
 ## Changes
+2026-10-13 — `walldisplay`: Added a Raspberry Pi diagnostics card with Linux/Python versions, CPU temperature, actual RAM use, WallDisplay service state, and Raspberry Pi Connect service state; exported the same data to the remote mirror and added click-to-fullscreen behavior for all telemetry graphs.
+
 2026-10-12 — `walldisplay`: Aligned power and temperature graphs inside their cards, kept complete graph labels visible on the kiosk display, and made graphs use the full available width and a larger height on phones.
 
 2026-10-10 — `walldisplay`: Made telemetry history loading independent from live status rendering, retained last known Shelly readings on Cloud request failures, and moved Shelly refreshes and remote exports off the `/api/status` response path.
