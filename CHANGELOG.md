@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Invoke `/usr/bin/systemctl` explicitly when checking service states so the WallDisplay unit's virtualenv-only `PATH` cannot report false unavailability.
 - Add a Raspberry Pi diagnostics card with Linux/Python versions, CPU temperature, actual RAM use, WallDisplay and Raspberry Pi Connect service states, and remote-mirror export.
 - Allow every power and temperature/humidity graph to toggle a full-screen view by click, keyboard activation, or Escape.
 - Bottom-align power and temperature graphs inside their telemetry cards, keep kiosk graph labels within the card, and resize canvases to the real container width with a larger mobile height.

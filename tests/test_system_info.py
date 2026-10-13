@@ -27,7 +27,13 @@ class SystemInfoTests(unittest.TestCase):
     def test_service_state_uses_systemctl_output(self, run):
         run.return_value.stdout = "active\n"
         self.assertEqual(system_info._service_state("walldisplay.service"), "active")
-        run.assert_called_once()
+        run.assert_called_once_with(
+            ["/usr/bin/systemctl", "is-active", "walldisplay.service"],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=1,
+        )
 
 
 if __name__ == "__main__":

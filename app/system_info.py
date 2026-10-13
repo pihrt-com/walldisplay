@@ -13,6 +13,7 @@ MEMINFO_PATH = Path("/proc/meminfo")
 THERMAL_ROOT = Path("/sys/class/thermal")
 WALLDISPLAY_SERVICE = "walldisplay.service"
 PI_CONNECT_SERVICE = "rpi-connect.service"
+SYSTEMCTL_PATH = "/usr/bin/systemctl"
 
 
 def _read_os_release() -> str:
@@ -76,7 +77,7 @@ def _service_state(service_name: str) -> str:
     """Return systemd's state without allowing a missing unit to break the API."""
     try:
         result = subprocess.run(
-            ["systemctl", "is-active", service_name],
+            [SYSTEMCTL_PATH, "is-active", service_name],
             check=False,
             capture_output=True,
             text=True,

@@ -50,6 +50,8 @@ Every telemetry graph can be clicked to expand it over the entire display; click
 The Raspberry Pi card shows the installed Linux release, the active Python version, CPU temperature, actual RAM use, and the systemd status of `walldisplay.service` and `rpi-connect.service`. Raspberry Pi OS does not normally expose an independent RAM temperature sensor, so the card deliberately reports RAM usage rather than a fabricated temperature. The same optional `system` object is exported to the remote JSON mirror.
 
 ## Changes
+2026-10-13 — `walldisplay`: Fixed the service-status check for the WallDisplay unit's restricted `PATH` by invoking `/usr/bin/systemctl` explicitly, so an active WallDisplay or Raspberry Pi Connect service is not falsely shown as unavailable.
+
 2026-10-13 — `walldisplay`: Added a Raspberry Pi diagnostics card with Linux/Python versions, CPU temperature, actual RAM use, WallDisplay service state, and Raspberry Pi Connect service state; exported the same data to the remote mirror and added click-to-fullscreen behavior for all telemetry graphs.
 
 2026-10-12 — `walldisplay`: Aligned power and temperature graphs inside their cards, kept complete graph labels visible on the kiosk display, and made graphs use the full available width and a larger height on phones.
